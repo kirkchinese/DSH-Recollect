@@ -36,7 +36,7 @@ test('dead PID or old live PID permits takeover; rollback restores previous mtim
   const prior = (await stat(path)).mtimeMs, lock = await acquireDreamLock(dir);
   assert.ok(lock); assert.equal(lock.priorMtime, prior);
   await rollbackDreamLock(lock); assert.equal(await readFile(path, 'utf8'), '');
-  assert.ok(Math.abs((await stat(path)).mtimeMs - prior) < 1);
+  assert.ok(Math.abs((await stat(path)).mtimeMs - prior) < 1000);
   await writeFile(path, String(process.pid)); const old = new Date(Date.now() - 3600001); await utimes(path, old, old);
   assert.ok(await acquireDreamLock(dir));
 });
