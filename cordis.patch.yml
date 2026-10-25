@@ -1,0 +1,7 @@
+# Bundle patch: mounts Recollect once at host level so every agent (all
+# presets and subagents) gets instruction files and persistent memory.
+# Override `config` in your profile's cordis.patch.yml (id: recollect); an
+# override replaces the whole config object.
+- insert:
+    - id: recollect
+      name: '@kirkchinese/dsh-recollect'

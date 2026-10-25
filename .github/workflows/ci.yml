@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    name: ${{ matrix.os }} / Node ${{ matrix.node }} / DSH 0.2.1-rc.2
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - node: 22.19.0
+            os: ubuntu-latest
+          - node: '24'
+            os: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Install DSH host packages for tests
+        run: npm install --no-save --no-package-lock @deepseek-ai/dsh-llm@0.2.1-rc.2 @deepseek-ai/dsh-tools@0.2.1-rc.2 @deepseek-ai/dsh-session@0.2.1-rc.2 @deepseek-ai/schemastery@3.18.5
+      - run: npm test
+      - run: npm pack --dry-run
+      - run: git diff --check
