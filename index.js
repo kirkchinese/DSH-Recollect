@@ -27,6 +27,10 @@ import { preambleFor, reminder, renderBaseline, renderDiff, renderNested, trunca
 import { announcedState, diffInstructions, digest, everAnnounced, instructionSource } from './lib/state.js';
 import { lintMemoryWrite, memoryToolDefinitions, TOOL } from './lib/memtool.js';
 import { claudeMemorySlugs, importMemoryDir } from './lib/importer.js';
+import { listMemoryFiles } from './lib/memtool.js';
+import { splitFrontmatter } from './lib/markdown.js';
+import { mountRemote } from './lib/remote.js';
+import { readFile as readFileAsync } from 'node:fs/promises';
 import { readForRecall, renderRecalled, selectByBm25, selectBySelector } from './lib/recall.js';
 import { cleanText } from './lib/sanitize.js';
 
@@ -524,6 +528,36 @@ export function apply(ctx, rawConfig) {
       }
     });
   });
+
+  // ---------- Remote status for the settings section ----------
+  const liveDirs = () => [...new Set(ctx.agents.list().filter(a => a.session.header.origin !== 'subagent').map(a => cwdOf(a)))];
+  const statusFor = async ({ cwd }) => {
+    const roots = ctx.agents.list().filter(a => a.session.header.origin !== 'subagent');
+    const agent = cwd === undefined ? roots.at(-1) : roots.find(a => cwdOf(a) === resolve(cwd));
+    const target = resolve(expandHome(cwd ?? (agent ? cwdOf(agent) : process.cwd())));
+    const memoryDir = memoryDirFor(target);
+    const { files } = await loader().loadStartup({ cwd: target, memoryIndexPath: memoryOn() ? join(memoryDir, INDEX_FILE) : undefined });
+    const total = files.reduce((n, f) => n + f.content.length, 0);
+    const memories = [];
+    for (const entry of (await listMemoryFiles(memoryDir).catch(() => [])).slice(0, 300)) {
+      if (entry.path === `/${INDEX_FILE}`) continue;
+      const text = await readFileAsync(join(memoryDir, entry.path), 'utf8').catch(() => '');
+      const fm = splitFrontmatter(text).frontmatter;
+      memories.push({ path: entry.path, bytes: entry.bytes, updatedAt: entry.updatedAt, type: String(fm.metadata?.type ?? fm.type ?? ''), description: String(fm.description ?? '') });
+    }
+    return {
+      cwd: target,
+      memoryDir,
+      memory: memoryOn() ? (agent && isPaused(agent.session) ? 'paused' : 'on') : 'off',
+      mode: agent ? writeModeFor(agent, memoryDir) : config.memory.writeMode,
+      files: files.map(f => ({ type: f.type, path: f.path, chars: f.content.length })),
+      total,
+      warn: total > config.instructions.warnTotalChars ? config.instructions.warnTotalChars : 0,
+      memories,
+      dirs: liveDirs(),
+    };
+  };
+  mountRemote(ctx, statusFor).catch(error => log('settings status API unavailable', error));
 
   // ---------- Commands ----------
   ctx.inject(['commands'], scoped => {

@@ -2,6 +2,14 @@
 
 All notable changes to Recollect. Versions are listed with the DSH host line they target.
 
+## 0.4.0 — 2026-10-26
+
+Targets the same DSH versions as 0.1.0.
+
+- A **Memory** section in the Settings dialog, next to other plugins' sections, with the same form as the Plugins page.
+- **What is loaded**: for a working directory, the injected instruction files and memory index (type and size) and the memory topic files (type, description, update time), served by a read-only Remote call.
+- Shorter option labels so the form fits the Settings dialog.
+
 ## 0.3.0 — 2026-10-26
 
 Targets the same DSH versions as 0.1.0.

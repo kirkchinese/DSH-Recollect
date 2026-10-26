@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
-const { ROW_ID, FIELDS } = await import('./fields.mjs');
+const { ROW_ID, SERVICE, FIELDS } = await import('./fields.mjs');
 const { zh, en } = await import('./locales.mjs');
 const page = readFileSync(join(root, 'client', 'page.js'), 'utf8');
 
@@ -21,7 +21,7 @@ window.__ModuleLoader__.load({
 \t\tvar exports = module.exports;
 \t\tObject.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
 \t\tconst PACKAGE = ${JSON.stringify(pkg.name)};
-\t\tconst ROW_ID = ${JSON.stringify(ROW_ID)};
+\t\tconst ROW_ID = ${JSON.stringify(ROW_ID)};\n\t\tconst SERVICE = ${JSON.stringify(SERVICE)};
 \t\tconst FIELDS = ${JSON.stringify(FIELDS)};
 \t\tconst LOCALES = ${JSON.stringify({ zh, en })};
 ${page}

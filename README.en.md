@@ -31,16 +31,16 @@ In Claude Code, the memory-writing guidance depends on the model. Models outside
 
 | DSH version | Recollect version |
 | --- | --- |
-| `0.2.0-rc.2` (including the official Desktop), `0.2.1-alpha.1` to `0.2.1-alpha.5`, `0.2.1-rc.1`, `0.2.1-rc.2` | `0.3.0` |
+| `0.2.0-rc.2` (including the official Desktop), `0.2.1-alpha.1` to `0.2.1-alpha.5`, `0.2.1-rc.1`, `0.2.1-rc.2` | `0.4.0` |
 
 **Official Desktop:** on the Plugins page, install the npm package `@kirkchinese/dsh-recollect`, or enter `https://github.com/kirkchinese/DSH-Recollect.git` as the Git address, then restart when prompted.
 
 **CLI and Web:**
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-recollect@0.3.0
+dsh plugin --profile web add @kirkchinese/dsh-recollect@0.4.0
 # or a release tag from the repository
-dsh plugin --profile web add "git+https://github.com/kirkchinese/DSH-Recollect.git#v0.3.0"
+dsh plugin --profile web add "git+https://github.com/kirkchinese/DSH-Recollect.git#v0.4.0"
 ```
 
 Restart DSH and reload the page. New sessions use Recollect. It takes over instruction-file loading and filters out what DSH's built-in AGENTS.md loader injects, so no file is loaded twice.
@@ -65,7 +65,9 @@ Memories live in `~/.dsh/memory/projects/<slug of the git root>/`, shared by all
 
 ## Settings page
 
-Open the Web sidebar's **Plugins** → Recollect → the `recollect` row to adjust every option: memory on/off and write mode, the language of memory text, sharing with Claude Code, instruction wording and excludes, recall, background extraction and consolidation. Changes apply on save and are stored as a profile override; content already injected into a conversation updates at the next refresh.
+Two entry points share one form: the **Memory** section of the Settings dialog, and the Web sidebar's **Plugins** → Recollect → the `recollect` row. Adjust every option: memory on/off and write mode, the language of memory text, sharing with Claude Code, instruction wording and excludes, recall, background extraction and consolidation. Changes apply on save and are stored as a profile override; content already injected into a conversation updates at the next refresh.
+
+The Memory section opens with **What is loaded**: pick a working directory (by default the most recently active session's) to list the instruction files and memory index injected for it, with type and size, and the topic files in its memory directory with type, description and update time.
 
 ## Commands
 

@@ -31,20 +31,20 @@ Recollect 是 [DeepSeek Harness（DSH）](https://github.com/deepseek-ai/deepsee
 
 | DSH 版本 | Recollect 版本 |
 | --- | --- |
-| `0.2.0-rc.2`（含官方桌面版）、`0.2.1-alpha.1` 至 `0.2.1-alpha.5`、`0.2.1-rc.1`、`0.2.1-rc.2` | `0.3.0` |
+| `0.2.0-rc.2`（含官方桌面版）、`0.2.1-alpha.1` 至 `0.2.1-alpha.5`、`0.2.1-rc.1`、`0.2.1-rc.2` | `0.4.0` |
 
 **官方桌面版：** 在插件页安装 npm 包 `@kirkchinese/dsh-recollect`，或在 Git 地址一栏填写 `https://github.com/kirkchinese/DSH-Recollect.git`，然后按提示重启。
 
 **命令行与 Web：**
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-recollect@0.3.0
+dsh plugin --profile web add @kirkchinese/dsh-recollect@0.4.0
 ```
 
 也可以从仓库安装某个发布标签：
 
 ```sh
-dsh plugin --profile web add "git+https://github.com/kirkchinese/DSH-Recollect.git#v0.3.0"
+dsh plugin --profile web add "git+https://github.com/kirkchinese/DSH-Recollect.git#v0.4.0"
 ```
 
 安装后重启 DSH 并刷新页面，新会话生效。Recollect 会接管指令文件的加载，并自动过滤 DSH 自带的 AGENTS.md 加载器注入的内容，避免同一份文件被读两次。
@@ -69,7 +69,9 @@ dsh plugin --profile web add "git+https://github.com/kirkchinese/DSH-Recollect.g
 
 ## 设置页
 
-在 Web 侧边栏「插件」→ Recollect → 组件行「recollect」进入设置页，可以调整全部选项：记忆开关与写入方式、记忆文本语言、是否与 Claude Code 共用目录、指令文件的措辞强度与排除规则、召回、后台提取和整理。保存后立即生效，并写入 profile 覆盖；当前对话里已经注入的内容会在下次刷新时更新。
+有两个入口：「设置」弹窗左侧的「记忆」分区，以及侧边栏「插件」→ Recollect → 组件行「recollect」。两处是同一份表单，可以调整全部选项：记忆开关与写入方式、记忆文本语言、是否与 Claude Code 共用目录、指令文件的措辞强度与排除规则、召回、后台提取和整理。保存后立即生效，并写入 profile 覆盖；当前对话里已经注入的内容会在下次刷新时更新。
+
+「记忆」分区顶部是「当前加载情况」：选一个工作目录（默认是最近活动的会话所在目录），列出会注入给模型的指令文件和记忆索引（类型与字符数），以及记忆目录里的主题文件（类型、描述、更新时间）。
 
 ## 命令
 

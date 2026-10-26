@@ -1,6 +1,8 @@
 // Settings page fields. `path` is the config path inside this plugin's row.
 // kind: bool | enum (options) | text | number | list (comma separated strings).
 export const ROW_ID = 'recollect';
+/** Remote service namespace (see lib/remote.js). */
+export const SERVICE = 'recollect';
 
 export const FIELDS = [
   { section: 'memory', path: 'language', kind: 'enum', options: ['zh', 'en'] },
