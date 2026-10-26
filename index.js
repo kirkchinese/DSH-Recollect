@@ -18,7 +18,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve, sep } from 'node:path';
 import { BlockAssembler, createUserMessage } from '@deepseek-ai/dsh-llm';
 import { defineTool } from '@deepseek-ai/dsh-tools';
-import { Config, resolveConfig } from './lib/config.js';
+import { Config, isResolved, liveConfig, resolveConfig } from './lib/config.js';
 import { INDEX_FILE, RECALL_SESSION_BUDGET, SOURCE_KIND } from './lib/constants.js';
 import { setLanguage, t } from './lib/i18n.js';
 import { InstructionLoader } from './lib/instructions.js';
@@ -83,18 +83,18 @@ function humanText(messages) {
  * @param rawConfig - loader row config.
  */
 export function apply(ctx, rawConfig) {
-  const config = resolveConfig(rawConfig);
-  setLanguage(config.language);
+  const config = liveConfig(isResolved(rawConfig) ? rawConfig : resolveConfig(rawConfig));
+  setLanguage(() => config.language);
   const log = (...args) => ctx.logger?.warn?.(...args) ?? console.warn('[recollect]', ...args);
   const home = dshHome();
   const subst = p => resolve(expandHome(p.replaceAll('{dshHome}', home).replaceAll('{agentsHome}', agentsHome())));
   const env = process.env;
-  const instructionsOn = config.instructions.enabled && !truthy(env.DSH_RECOLLECT_DISABLE_INSTRUCTIONS);
+  const instructionsOn = () => config.instructions.enabled && !truthy(env.DSH_RECOLLECT_DISABLE_INSTRUCTIONS);
   // An explicit falsy env value forces memory on.
-  const memoryOn = falsy(env.DSH_RECOLLECT_DISABLE_MEMORY) ? true : truthy(env.DSH_RECOLLECT_DISABLE_MEMORY) ? false : config.memory.enabled;
-  const preamble = preambleFor(config.instructions.authority);
-  const loader = new InstructionLoader({
-    enabled: instructionsOn,
+  const memoryOn = () => (falsy(env.DSH_RECOLLECT_DISABLE_MEMORY) ? true : truthy(env.DSH_RECOLLECT_DISABLE_MEMORY) ? false : config.memory.enabled);
+  const preambleNow = () => preambleFor(config.instructions.authority);
+  const loader = () => new InstructionLoader({
+    enabled: instructionsOn(),
     managedDirs: config.instructions.managedDirs.map(subst),
     userFiles: config.instructions.userFiles.map(subst),
     userRulesDirs: config.instructions.userRulesDirs.map(subst),
@@ -140,11 +140,11 @@ export function apply(ctx, rawConfig) {
       return agent.session.header.cwd ?? process.cwd();
     }
   };
-  const claudeHome = subst(config.memory.claudeHome || process.env.CLAUDE_CONFIG_DIR || '~/.claude');
+  const claudeHomeNow = () => subst(config.memory.claudeHome || process.env.CLAUDE_CONFIG_DIR || '~/.claude');
   const slugFor = cwd => projectSlug(gitRootSync(cwd) ?? resolve(cwd));
   const memoryDirFor = cwd => {
     if (config.memory.directory) return subst(config.memory.directory);
-    if (config.memory.shareWithClaudeCode) return join(claudeHome, 'projects', slugFor(cwd), 'memory');
+    if (config.memory.shareWithClaudeCode) return join(claudeHomeNow(), 'projects', slugFor(cwd), 'memory');
     return join(subst(config.memory.root), 'projects', slugFor(cwd));
   };
   /** 'files' | 'tools' | 'readonly'. */
@@ -164,21 +164,22 @@ export function apply(ctx, rawConfig) {
   const info = agent => {
     let st = agents.get(agent);
     const cwd = cwdOf(agent);
-    if (st === undefined || st.cwd !== cwd) {
+    const dirKey = JSON.stringify([cwd, config.memory.root, config.memory.directory, config.memory.shareWithClaudeCode, config.memory.claudeHome, config.memory.writeMode]);
+    if (st === undefined || st.dirKey !== dirKey) {
       const memoryDir = memoryDirFor(cwd);
-      if (memoryOn) {
+      if (memoryOn()) {
         try {
           mkdirSync(memoryDir, { recursive: true });
         } catch (error) {
           log('cannot create memory directory', memoryDir, error);
         }
       }
-      st = { ...(st ?? { seen: false, touches: [], surfaced: new Set(), selectorHistory: [] }), cwd, memoryDir, mode: writeModeFor(agent, memoryDir) };
+      st = { ...(st ?? { seen: false, touches: [], surfaced: new Set(), selectorHistory: [] }), cwd, dirKey, memoryDir, mode: writeModeFor(agent, memoryDir) };
       agents.set(agent, st);
     }
     return st;
   };
-  const memoryActive = agent => memoryOn && !isPaused(agent.session);
+  const memoryActive = agent => memoryOn() && !isPaused(agent.session);
 
   // ---------- Memory tools (scoped, only in tools mode) ----------
   const toolDefs = memoryToolDefinitions({
@@ -216,7 +217,7 @@ export function apply(ctx, rawConfig) {
   };
   const agentMemoryText = agent => {
     const scope = config.agentMemory[agent.session.header.agentPreset ?? ''];
-    if (scope === undefined || !memoryOn || isPaused(agent.session)) return '';
+    if (scope === undefined || !memoryOn() || isPaused(agent.session)) return '';
     const cwd = info(agent).cwd;
     const safe = (agent.session.header.agentPreset || 'unknown').replace(/[^a-zA-Z0-9\-_]/g, '-');
     const dir = scope === 'user' ? join(home, 'agent-memory', safe) : scope === 'project' ? join(cwd, '.claude', 'agent-memory', safe) : join(cwd, '.claude', 'agent-memory-local', safe);
@@ -287,7 +288,7 @@ export function apply(ctx, rawConfig) {
   const identityOf = st => JSON.stringify({ cwd: st.cwd, memoryDir: st.memoryDir });
   const loadCurrent = async agent => {
     const st = info(agent);
-    const { files } = await loader.loadStartup({ cwd: st.cwd, memoryIndexPath: memoryActive(agent) ? join(st.memoryDir, INDEX_FILE) : undefined });
+    const { files } = await loader().loadStartup({ cwd: st.cwd, memoryIndexPath: memoryActive(agent) ? join(st.memoryDir, INDEX_FILE) : undefined });
     const total = files.reduce((n, f) => n + f.content.length, 0);
     if (total > config.instructions.warnTotalChars) log(`${files.length} instruction files add up to ${total} chars, over the ${config.instructions.warnTotalChars}-char warning threshold (not truncated)`);
     return files;
@@ -312,7 +313,7 @@ export function apply(ctx, rawConfig) {
         return out;
       }
       st.emptyIdentity = undefined;
-      out.push(message(renderBaseline(files, preamble), instructionSource('baseline', files, { identity, reason })));
+      out.push(message(renderBaseline(files, preambleNow()), instructionSource('baseline', files, { identity, reason })));
       return out;
     }
     let reason = st.pendingReason;
@@ -330,7 +331,7 @@ export function apply(ctx, rawConfig) {
       const fresh = [];
       const known = new Map(announced);
       for (const path of touches) {
-        for (const f of await loader.loadForTouch({ cwd: st.cwd, filePath: path })) {
+        for (const f of await loader().loadForTouch({ cwd: st.cwd, filePath: path })) {
           const prev = known.get(f.path);
           if (prev !== undefined && prev.digest === digest(f.content)) continue;
           known.set(f.path, { type: f.type, digest: digest(f.content), scope: 'nested' });
@@ -415,7 +416,6 @@ export function apply(ctx, rawConfig) {
   // ---------- Background extraction / dream (optional modules) ----------
   const background = { extractor: undefined, dreamer: undefined, policy: undefined, budget: undefined };
   const backgroundReady = (async () => {
-    if (!config.extract.enabled && !config.dream.enabled) return;
     try {
       const guard = await import('./lib/guard.js');
       background.policy = guard.createChildToolPolicy();
@@ -423,7 +423,7 @@ export function apply(ctx, rawConfig) {
       ctx.effect(() => ctx.tools.guard(background.policy.guard), 'recollect.child-guard');
       const memory = {
         dirFor: agent => info(agent).memoryDir,
-        isPaused: session => isPaused(session) || !memoryOn,
+        isPaused: session => isPaused(session) || !memoryOn(),
         guidanceAvailable: true,
         toolNames: agent => ({ write: info(agent).mode === 'tools' ? [TOOL.write, TOOL.edit, TOOL.remove] : ['write', 'edit'] }),
         writeMode: agent => info(agent).mode,
@@ -436,11 +436,11 @@ export function apply(ctx, rawConfig) {
         get sessionPersistence() { return ctx.get('sessionPersistence'); },
         get workingDirectory() { return ctx.workingDirectory; },
       };
-      if (config.extract.enabled) {
+      {
         const { createExtractor } = await import('./lib/extract.js');
         background.extractor = createExtractor({ ctx: services, config, log, memory, policy: background.policy, budget: background.budget });
       }
-      if (config.dream.enabled) {
+      {
         const { createDreamer } = await import('./lib/dream.js');
         background.dreamer = createDreamer({ ctx: services, config, log, memory, policy: background.policy, budget: background.budget, sessionsDir: agent => (agent.session.header.cwd ? join(home, 'sessions', dshProjectKey(agent.session.header.cwd)) : join(home, 'sessions', '_no-cwd')) });
       }
@@ -532,7 +532,7 @@ export function apply(ctx, rawConfig) {
       const files = await loadCurrent(agent);
       const total = files.reduce((n, f) => n + f.content.length, 0);
       return t().commands.status({
-        memory: memoryOn ? (isPaused(agent.session) ? 'paused' : 'on') : 'off',
+        memory: memoryOn() ? (isPaused(agent.session) ? 'paused' : 'on') : 'off',
         mode: st.mode,
         dir: st.memoryDir,
         recall: config.recall.enabled ? config.recall.method : false,
@@ -583,12 +583,12 @@ export function apply(ctx, rawConfig) {
         const dryRun = args.includes('--dry-run');
         if (config.memory.shareWithClaudeCode) return { kind: 'error', text: t().commands.import.shared };
         const pairs = all
-          ? (await claudeMemorySlugs(claudeHome)).map(slug => ({ slug, from: join(claudeHome, 'projects', slug, 'memory'), to: config.memory.directory ? subst(config.memory.directory) : join(subst(config.memory.root), 'projects', slug) }))
-          : [{ slug: slugFor(info(agent).cwd), from: join(claudeHome, 'projects', slugFor(info(agent).cwd), 'memory'), to: info(agent).memoryDir }];
+          ? (await claudeMemorySlugs(claudeHomeNow())).map(slug => ({ slug, from: join(claudeHomeNow(), 'projects', slug, 'memory'), to: config.memory.directory ? subst(config.memory.directory) : join(subst(config.memory.root), 'projects', slug) }))
+          : [{ slug: slugFor(info(agent).cwd), from: join(claudeHomeNow(), 'projects', slugFor(info(agent).cwd), 'memory'), to: info(agent).memoryDir }];
         const results = [];
         for (const p of pairs) results.push({ ...p, ...(await importMemoryDir({ from: p.from, to: p.to, dryRun })) });
         info(agent).pendingReason = 'session_start';
-        return { kind: 'success', text: t().commands.import.result({ dryRun, claudeHome, results }) };
+        return { kind: 'success', text: t().commands.import.result({ dryRun, claudeHome: claudeHomeNow(), results }) };
       },
     }), 'recollect.cmd.import');
     scoped.effect(() => scoped.commands.register({
@@ -596,7 +596,7 @@ export function apply(ctx, rawConfig) {
       description: t().commands.dream.description,
       handler: async ({ agent }) => {
         await backgroundReady;
-        if (background.dreamer === undefined) return { kind: 'error', text: t().commands.dreamDisabled };
+        if (background.dreamer === undefined || !config.dream.enabled) return { kind: 'error', text: t().commands.dreamDisabled };
         try {
           return { kind: 'success', text: await background.dreamer.runNow(agent) };
         } catch (error) {

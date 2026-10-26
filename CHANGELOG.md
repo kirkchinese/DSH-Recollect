@@ -2,6 +2,13 @@
 
 All notable changes to Recollect. Versions are listed with the DSH host line they target.
 
+## 0.3.0 — 2026-10-26
+
+Targets the same DSH versions as 0.1.0.
+
+- Settings page in the Web UI (Plugins → Recollect → `recollect` row) for every option, in Chinese and English, built on DSH's own settings components.
+- Configuration is live: changes saved on the page apply without restarting DSH.
+
 ## 0.2.0 — 2026-10-26
 
 Targets the same DSH versions as 0.1.0.

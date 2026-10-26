@@ -1,6 +1,6 @@
 {
   "name": "@kirkchinese/dsh-recollect",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Claude-Code-compatible memory for every model in DeepSeek Harness: layered CLAUDE.md/AGENTS.md instructions with @import and rules, a persistent MEMORY.md memory with full writing guidance, refresh on resume and compaction, optional recall, background extraction and consolidation.",
   "keywords": [
     "deepseek-harness",
@@ -37,12 +37,20 @@
   "main": "./index.js",
   "exports": {
     ".": "./index.js",
+    "./client": "./lib/client.js",
     "./cordis.patch.yml": "./cordis.patch.yml",
     "./package.json": "./package.json"
   },
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-plugin-manager"
+      ]
     }
   },
   "files": [
@@ -59,6 +67,7 @@
     "@deepseek-ai/schemastery": "3.18.4 || 3.18.5-alpha.1 || 3.18.5-alpha.2 || 3.18.5"
   },
   "scripts": {
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.js",
+    "build:client": "node client/build.mjs"
   }
 }

@@ -25,22 +25,22 @@ In Claude Code, the memory-writing guidance depends on the model. Models outside
 | Memory storage | **Separate by default**: Recollect writes to `~/.dsh/memory/projects/<slug>/`, Claude Code to `~/.claude/projects/<slug>/memory/`, with the same slug rule |
 | Existing Claude Code memories | Copy them with `/memory-import` (`all` for every project, `--dry-run` to preview). The source is only read, existing files are never overwritten, and index lines are merged by link |
 | One shared memory | Optional: `memory.shareWithClaudeCode: true` reads and writes Claude Code's directory directly. Both programs then edit the same files, and Claude Code's background consolidation also reorganizes them |
-| Not implemented | Team memory (`CLAUDE_MEMORY_STORES`), account memory, the `/memory` dialog, `#` quick capture |
+| Not implemented | Team memory (`CLAUDE_MEMORY_STORES`), account memory, `#` quick capture |
 
 ## Install
 
 | DSH version | Recollect version |
 | --- | --- |
-| `0.2.0-rc.2` (including the official Desktop), `0.2.1-alpha.1` to `0.2.1-alpha.5`, `0.2.1-rc.1`, `0.2.1-rc.2` | `0.2.0` |
+| `0.2.0-rc.2` (including the official Desktop), `0.2.1-alpha.1` to `0.2.1-alpha.5`, `0.2.1-rc.1`, `0.2.1-rc.2` | `0.3.0` |
 
 **Official Desktop:** on the Plugins page, install the npm package `@kirkchinese/dsh-recollect`, or enter `https://github.com/kirkchinese/DSH-Recollect.git` as the Git address, then restart when prompted.
 
 **CLI and Web:**
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-recollect@0.2.0
+dsh plugin --profile web add @kirkchinese/dsh-recollect@0.3.0
 # or a release tag from the repository
-dsh plugin --profile web add "git+https://github.com/kirkchinese/DSH-Recollect.git#v0.2.0"
+dsh plugin --profile web add "git+https://github.com/kirkchinese/DSH-Recollect.git#v0.3.0"
 ```
 
 Restart DSH and reload the page. New sessions use Recollect. It takes over instruction-file loading and filters out what DSH's built-in AGENTS.md loader injects, so no file is loaded twice.
@@ -63,6 +63,10 @@ Memories live in `~/.dsh/memory/projects/<slug of the git root>/`, shared by all
 
 **Writes adapt to the sandbox.** When the sandbox allows writing the memory directory, the model uses the built-in `write`/`edit`. When it does not (for example `workspace-write`, where the directory is outside the workspace), Recollect mounts `memory_list/read/write/edit/delete` and switches the guidance to match. These tools write only `.md` files inside the memory directory and refuse secrets. Nothing is written in a read-only sandbox.
 
+## Settings page
+
+Open the Web sidebar's **Plugins** → Recollect → the `recollect` row to adjust every option: memory on/off and write mode, the language of memory text, sharing with Claude Code, instruction wording and excludes, recall, background extraction and consolidation. Changes apply on save and are stored as a profile override; content already injected into a conversation updates at the next refresh.
+
 ## Commands
 
 | Command | Purpose |
@@ -75,7 +79,7 @@ Memories live in `~/.dsh/memory/projects/<slug of the git root>/`, shared by all
 
 ## Configuration
 
-Override in your profile's `cordis.patch.yml`. An override replaces the whole config object; omitted fields keep their defaults.
+You can also edit the profile's `cordis.patch.yml` by hand. A hand-written override replaces the whole config object; omitted fields keep their defaults.
 
 ```yaml
 - id: recollect
@@ -87,7 +91,7 @@ Override in your profile's `cordis.patch.yml`. An override replaces the whole co
       authority: strong   # strong: instruction files override default behavior (as in Claude Code); soft: guidance only
 ```
 
-Every field is listed in [lib/config.js](lib/config.js) and shown on DSH's settings page. `DSH_RECOLLECT_DISABLE_MEMORY=1` turns memory off (`0` forces it on), and `DSH_RECOLLECT_DISABLE_INSTRUCTIONS=1` turns instruction files off.
+Every field is listed in [lib/config.js](lib/config.js). `DSH_RECOLLECT_DISABLE_MEMORY=1` turns memory off (`0` forces it on), and `DSH_RECOLLECT_DISABLE_INSTRUCTIONS=1` turns instruction files off.
 
 ## Differences from Claude Code
 
@@ -95,7 +99,7 @@ Every field is listed in [lib/config.js](lib/config.js) and shown on DSH's setti
 - All prompts are written independently for this project, with no Claude Code text, in Chinese and English. Recall uses an independent BM25F implementation.
 - `AGENTS.md`, `.agents/rules` and `AGENTS.local.md` load alongside the `CLAUDE.md` family. Files with identical content in one directory are shown once.
 - Invisible and control characters are stripped, and `</system-reminder>` in file content or paths is escaped.
-- Adds `/remember`. `/memory` reports status as text instead of opening a dialog.
+- Adds `/remember`. Settings live on the Plugins page; `/memory` reports the current status and loaded files as text.
 
 ## Known limitations
 
