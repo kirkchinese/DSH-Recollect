@@ -16,22 +16,31 @@ In Claude Code, the memory-writing guidance depends on the model. Models outside
 - sees the memory index in each new session and reads or recalls memory bodies when relevant;
 - verifies a memory before recommending from it, because memories go stale.
 
-Your existing `CLAUDE.md`, `CLAUDE.local.md` and `.claude/rules/` work unchanged, and `AGENTS.md` is read as well.
+## Compatibility with Claude Code
+
+| Area | Status |
+| --- | --- |
+| Instruction files | **Reads the same files**: `~/.claude/CLAUDE.md`, `~/.claude/rules/`, project `CLAUDE.md`, `.claude/CLAUDE.md`, `.claude/rules/`, `CLAUDE.local.md`, `@import`, `/etc/claude-code`, plus `AGENTS.md` |
+| Memory format | **Same**: one file per memory with frontmatter (`name`, `description`, `metadata.type`), four types, `MEMORY.md` as the index |
+| Memory storage | **Separate by default**: Recollect writes to `~/.dsh/memory/projects/<slug>/`, Claude Code to `~/.claude/projects/<slug>/memory/`, with the same slug rule |
+| Existing Claude Code memories | Copy them with `/memory-import` (`all` for every project, `--dry-run` to preview). The source is only read, existing files are never overwritten, and index lines are merged by link |
+| One shared memory | Optional: `memory.shareWithClaudeCode: true` reads and writes Claude Code's directory directly. Both programs then edit the same files, and Claude Code's background consolidation also reorganizes them |
+| Not implemented | Team memory (`CLAUDE_MEMORY_STORES`), account memory, the `/memory` dialog, `#` quick capture |
 
 ## Install
 
 | DSH version | Recollect version |
 | --- | --- |
-| `0.2.0-rc.2` (including the official Desktop), `0.2.1-alpha.1` to `0.2.1-alpha.5`, `0.2.1-rc.1`, `0.2.1-rc.2` | `0.1.0` |
+| `0.2.0-rc.2` (including the official Desktop), `0.2.1-alpha.1` to `0.2.1-alpha.5`, `0.2.1-rc.1`, `0.2.1-rc.2` | `0.2.0` |
 
 **Official Desktop:** on the Plugins page, install the npm package `@kirkchinese/dsh-recollect`, or enter `https://github.com/kirkchinese/DSH-Recollect.git` as the Git address, then restart when prompted.
 
 **CLI and Web:**
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-recollect@0.1.0
+dsh plugin --profile web add @kirkchinese/dsh-recollect@0.2.0
 # or a release tag from the repository
-dsh plugin --profile web add "git+https://github.com/kirkchinese/DSH-Recollect.git#v0.1.0"
+dsh plugin --profile web add "git+https://github.com/kirkchinese/DSH-Recollect.git#v0.2.0"
 ```
 
 Restart DSH and reload the page. New sessions use Recollect. It takes over instruction-file loading and filters out what DSH's built-in AGENTS.md loader injects, so no file is loaded twice.
@@ -61,6 +70,7 @@ Memories live in `~/.dsh/memory/projects/<slug of the git root>/`, shared by all
 | `/memory` | Memory status, write mode, and every loaded instruction and memory file |
 | `/pause-memory` | Pause or resume memory for this session (kept across restarts) |
 | `/remember <text>` | Ask the model to save `text` to memory |
+| `/memory-import [all] [--dry-run]` | Copy existing Claude Code memories into Recollect's directory |
 | `/dream` | Consolidate this project's memory now (requires dream to be enabled) |
 
 ## Configuration

@@ -16,26 +16,35 @@ Recollect 是 [DeepSeek Harness（DSH）](https://github.com/deepseek-ai/deepsee
 - 每个会话开始时读到记忆索引，并在需要时读取或召回记忆正文；
 - 记忆会过期，所以推荐之前先核验。
 
-你已有的 `CLAUDE.md`、`CLAUDE.local.md`、`.claude/rules/` 不需要改动，直接生效；`AGENTS.md` 同样会被读取。
+## 与 Claude Code 的兼容范围
+
+| 内容 | 兼容程度 |
+| --- | --- |
+| 指令文件 | **直接读取同一份文件**：`~/.claude/CLAUDE.md`、`~/.claude/rules/`、项目里的 `CLAUDE.md`、`.claude/CLAUDE.md`、`.claude/rules/`、`CLAUDE.local.md`、`@import`、`/etc/claude-code`。另外还会读取 `AGENTS.md` |
+| 记忆格式 | **一致**：每条记忆一个文件，带 frontmatter（`name`、`description`、`metadata.type`），四种类型，`MEMORY.md` 作索引 |
+| 记忆存储 | **默认分开存放**：Recollect 写在 `~/.dsh/memory/projects/<slug>/`，Claude Code 写在 `~/.claude/projects/<slug>/memory/`。两边的 slug 计算规则相同 |
+| 已有的 Claude Code 记忆 | 用 `/memory-import` 复制过来（`all` 导入全部项目，`--dry-run` 只预览）。来源只读，不会覆盖已有文件，索引按链接去重后合并 |
+| 共用同一份记忆 | 可选：设置 `memory.shareWithClaudeCode: true` 后直接读写 Claude Code 的目录。两边会同时修改这些文件，Claude Code 的后台整理也会整理它们 |
+| 未实现 | 团队记忆（`CLAUDE_MEMORY_STORES`）、账号记忆、`/memory` 图形对话框、`#` 快捷写入 |
 
 ## 安装
 
 | DSH 版本 | Recollect 版本 |
 | --- | --- |
-| `0.2.0-rc.2`（含官方桌面版）、`0.2.1-alpha.1` 至 `0.2.1-alpha.5`、`0.2.1-rc.1`、`0.2.1-rc.2` | `0.1.0` |
+| `0.2.0-rc.2`（含官方桌面版）、`0.2.1-alpha.1` 至 `0.2.1-alpha.5`、`0.2.1-rc.1`、`0.2.1-rc.2` | `0.2.0` |
 
 **官方桌面版：** 在插件页安装 npm 包 `@kirkchinese/dsh-recollect`，或在 Git 地址一栏填写 `https://github.com/kirkchinese/DSH-Recollect.git`，然后按提示重启。
 
 **命令行与 Web：**
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-recollect@0.1.0
+dsh plugin --profile web add @kirkchinese/dsh-recollect@0.2.0
 ```
 
 也可以从仓库安装某个发布标签：
 
 ```sh
-dsh plugin --profile web add "git+https://github.com/kirkchinese/DSH-Recollect.git#v0.1.0"
+dsh plugin --profile web add "git+https://github.com/kirkchinese/DSH-Recollect.git#v0.2.0"
 ```
 
 安装后重启 DSH 并刷新页面，新会话生效。Recollect 会接管指令文件的加载，并自动过滤 DSH 自带的 AGENTS.md 加载器注入的内容，避免同一份文件被读两次。
@@ -65,6 +74,7 @@ dsh plugin --profile web add "git+https://github.com/kirkchinese/DSH-Recollect.g
 | `/memory` | 查看记忆状态、写入方式和已加载的全部指令与记忆文件 |
 | `/pause-memory` | 在本会话中暂停或恢复记忆，状态在重启后保留 |
 | `/remember <内容>` | 让模型把这句话存进记忆 |
+| `/memory-import [all] [--dry-run]` | 把 Claude Code 已有的记忆复制到 Recollect 的记忆目录 |
 | `/dream` | 立即整理本项目的记忆目录（需先开启 dream） |
 
 ## 配置

@@ -26,6 +26,7 @@ import { agentsHome, dshHome, dshProjectKey, expandHome, projectSlug, within } f
 import { preambleFor, reminder, renderBaseline, renderDiff, renderNested, truncateIndex } from './lib/render.js';
 import { announcedState, diffInstructions, digest, everAnnounced, instructionSource } from './lib/state.js';
 import { lintMemoryWrite, memoryToolDefinitions, TOOL } from './lib/memtool.js';
+import { claudeMemorySlugs, importMemoryDir } from './lib/importer.js';
 import { readForRecall, renderRecalled, selectByBm25, selectBySelector } from './lib/recall.js';
 import { cleanText } from './lib/sanitize.js';
 
@@ -139,10 +140,12 @@ export function apply(ctx, rawConfig) {
       return agent.session.header.cwd ?? process.cwd();
     }
   };
+  const claudeHome = subst(config.memory.claudeHome || process.env.CLAUDE_CONFIG_DIR || '~/.claude');
+  const slugFor = cwd => projectSlug(gitRootSync(cwd) ?? resolve(cwd));
   const memoryDirFor = cwd => {
     if (config.memory.directory) return subst(config.memory.directory);
-    const base = gitRootSync(cwd) ?? resolve(cwd);
-    return join(subst(config.memory.root), 'projects', projectSlug(base));
+    if (config.memory.shareWithClaudeCode) return join(claudeHome, 'projects', slugFor(cwd), 'memory');
+    return join(subst(config.memory.root), 'projects', slugFor(cwd));
   };
   /** 'files' | 'tools' | 'readonly'. */
   const writeModeFor = (agent, memoryDir) => {
@@ -570,6 +573,24 @@ export function apply(ctx, rawConfig) {
         return { kind: 'success', text: t().commands.rememberQueued };
       },
     }), 'recollect.cmd.remember');
+    scoped.effect(() => scoped.commands.register({
+      name: 'memory-import',
+      description: t().commands.import.description,
+      input: { hint: t().commands.import.hint },
+      handler: async ({ agent, rawInput }) => {
+        const args = rawInput.trim().split(/\s+/).filter(Boolean);
+        const all = args.includes('all');
+        const dryRun = args.includes('--dry-run');
+        if (config.memory.shareWithClaudeCode) return { kind: 'error', text: t().commands.import.shared };
+        const pairs = all
+          ? (await claudeMemorySlugs(claudeHome)).map(slug => ({ slug, from: join(claudeHome, 'projects', slug, 'memory'), to: config.memory.directory ? subst(config.memory.directory) : join(subst(config.memory.root), 'projects', slug) }))
+          : [{ slug: slugFor(info(agent).cwd), from: join(claudeHome, 'projects', slugFor(info(agent).cwd), 'memory'), to: info(agent).memoryDir }];
+        const results = [];
+        for (const p of pairs) results.push({ ...p, ...(await importMemoryDir({ from: p.from, to: p.to, dryRun })) });
+        info(agent).pendingReason = 'session_start';
+        return { kind: 'success', text: t().commands.import.result({ dryRun, claudeHome, results }) };
+      },
+    }), 'recollect.cmd.import');
     scoped.effect(() => scoped.commands.register({
       name: 'dream',
       description: t().commands.dream.description,

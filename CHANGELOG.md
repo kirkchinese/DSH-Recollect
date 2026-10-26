@@ -2,6 +2,14 @@
 
 All notable changes to Recollect. Versions are listed with the DSH host line they target.
 
+## 0.2.0 — 2026-10-26
+
+Targets the same DSH versions as 0.1.0.
+
+- `/memory-import [all] [--dry-run]` copies memories that Claude Code already wrote (`~/.claude/projects/<slug>/memory/`) into Recollect's own directory. The source is only read; existing files are never overwritten (conflicts are reported); index lines are merged by link.
+- `memory.shareWithClaudeCode` (off by default) makes Recollect read and write Claude Code's memory directory directly. `memory.claudeHome` (default `$CLAUDE_CONFIG_DIR` or `~/.claude`) locates it.
+- The README states the compatibility scope precisely: instruction files are shared, the memory format is the same, storage is separate unless sharing is turned on.
+
 ## 0.1.0 — 2026-10-25
 
 Targets DSH `0.2.0-rc.2` (including the official Desktop), `0.2.1-alpha.1` through `0.2.1-alpha.5`, `0.2.1-rc.1` and `0.2.1-rc.2`.

@@ -1,6 +1,6 @@
 {
   "name": "@kirkchinese/dsh-recollect",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Claude-Code-compatible memory for every model in DeepSeek Harness: layered CLAUDE.md/AGENTS.md instructions with @import and rules, a persistent MEMORY.md memory with full writing guidance, refresh on resume and compaction, optional recall, background extraction and consolidation.",
   "keywords": [
     "deepseek-harness",

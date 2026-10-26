@@ -13,7 +13,7 @@ const shape = {
   lint:{indexOver:'function',indexNear:'function',fileOver:'function',fileNear:'function',continuation:'function',noDescription:'string',longDescription:'function'},
   tools:{list:'string',read:'string',write:'string',edit:'string',delete:'string',params:{path_prefix:'string',path:'string',content:'string',old_string:'string',new_string:'string',replace_all:'string'},err:{empty:'string',tooLarge:'function',secrets:'function',notFound:'function',notUnique:'function',editTooLarge:'function',paused:'string',readOnly:'string'},ok:{created:'function',updated:'function',edited:'function',deleted:'function'}},
   extract:{prompt:'function',tools:'function',nothing:'string'},dream:{prompt:'function'},memoryUpdate:'function',guardDenied:'string',
-  commands:{memory:{description:'string'},pause:{description:'string'},remember:{description:'string',hint:'string'},dream:{description:'string'},pausedOn:'string',pausedOff:'string',rememberUsage:'string',rememberQueued:'string',memoryOff:'string',dreamDisabled:'string',dreamFailed:'function',status:'function'}
+  commands:{import:{description:'string',hint:'string',shared:'string',result:'function'},memory:{description:'string'},pause:{description:'string'},remember:{description:'string',hint:'string'},dream:{description:'string'},pausedOn:'string',pausedOff:'string',rememberUsage:'string',rememberQueued:'string',memoryOff:'string',dreamDisabled:'string',dreamFailed:'function',status:'function'}
 };
 const sample = {
   section:['/tmp/rules.md',' (project)'],nested:['/tmp/nested.md'],
@@ -35,6 +35,7 @@ const sample = {
   'dream.prompt':[{memoryDir:'/tmp/mem',sessionsDir:'/tmp/sessions',sessionIds:['session-1'],toolsMode:false,tools:'read, write'}],
   memoryUpdate:[{source:'extract',count:1,paths:['note.md']}],
   'commands.dreamFailed':['error'],
+  'commands.import.result':[{dryRun:false,claudeHome:'/h',results:[{slug:'-p',to:'/t',copied:['a.md'],identical:[],conflicts:[],indexAdded:1}]}],
   'commands.status':[{memory:'on',mode:'files',dir:'/tmp/mem',recall:'on',extract:'on',dream:'on',files:[{type:'user',path:'note.md',chars:100}],total:1,warn:''}]
 };
 function assertShape(actual, expected, path = '') {

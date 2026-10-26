@@ -292,3 +292,5 @@ A prompt for a helper that tidies the memory directory. Its structure:
 `status(fields)`. `status(fields)` takes `fields = { memory: 'on'|'off'|'paused', mode:
 'files'|'tools'|'readonly', dir, recall, extract, dream, files: [{type, path, chars}], total,
 warn }` and returns a short multi-line status report.
+
+`commands.import`: `description`, `hint`, `shared` (memory is already shared with Claude Code, so there is nothing to import) and `result({ dryRun, claudeHome, results: [{ slug, to, copied, identical, conflicts, indexAdded }] })`, a short per-project report.

@@ -1,0 +1,34 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { mkdtemp, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { claudeMemorySlugs, importMemoryDir } from '../lib/importer.js';
+
+test('imports topic files without overwriting and merges index lines', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'rc-imp-'));
+  const from = join(root, 'claude', 'projects', '-p', 'memory');
+  const to = join(root, 'dsh', 'projects', '-p');
+  await mkdir(join(from, 'sub'), { recursive: true });
+  await mkdir(to, { recursive: true });
+  await writeFile(join(from, 'a.md'), 'A');
+  await writeFile(join(from, 'sub', 'b.md'), 'B');
+  await writeFile(join(from, 'same.md'), 'S');
+  await writeFile(join(from, 'clash.md'), 'NEW');
+  await writeFile(join(from, 'MEMORY.md'), '- [A](a.md) — a\n- [S](same.md) — s\n');
+  await writeFile(join(to, 'same.md'), 'S');
+  await writeFile(join(to, 'clash.md'), 'OLD');
+  await writeFile(join(to, 'MEMORY.md'), '- [S](same.md) — mine\n');
+  const dry = await importMemoryDir({ from, to, dryRun: true });
+  assert.deepEqual(dry.copied, ['a.md', 'sub/b.md']);
+  assert.equal(await readFile(join(to, 'a.md'), 'utf8').catch(() => 'absent'), 'absent');
+  const r = await importMemoryDir({ from, to });
+  assert.deepEqual(r.identical, ['same.md']);
+  assert.deepEqual(r.conflicts, ['clash.md']);
+  assert.equal(r.indexAdded, 1);
+  assert.equal(await readFile(join(to, 'clash.md'), 'utf8'), 'OLD');
+  assert.equal(await readFile(join(to, 'MEMORY.md'), 'utf8'), '- [S](same.md) — mine\n- [A](a.md) — a\n');
+  assert.deepEqual(await claudeMemorySlugs(join(root, 'claude')), ['-p']);
+  const again = await importMemoryDir({ from, to });
+  assert.equal(again.copied.length + again.indexAdded, 0);
+});
