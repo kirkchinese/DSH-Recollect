@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile, readFile, rm, stat, symlink } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, readFile, rm, stat, symlink, realpath } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { runInNewContext } from 'node:vm';
 import { zh, en } from '../client/locales.mjs';
@@ -119,8 +119,11 @@ test('real Git metadata validates common directories for gitfiles and worktrees'
   if (probe.error?.code === 'ENOENT') { t.skip('git executable is unavailable; real repository fixtures cannot be created'); return; }
   assert.equal(probe.status, 0, probe.error?.message ?? probe.stderr);
   const f = await hostFixture();
+  // Git for Windows returns long real paths while os.tmpdir() may use an 8.3
+  // alias (RUNNER~1). Canonicalize both sides before deriving any fixtures.
+  f.dir = await realpath(f.dir);
   // Every command and cleanup target belongs to this newly-created tmp fixture.
-  const tempRoot = resolve(tmpdir());
+  const tempRoot = await realpath(tmpdir());
   assert.ok(resolve(f.dir).startsWith(tempRoot + sep));
   t.after(async () => {
     await rm(f.dir, { recursive: true, force: true });
@@ -191,6 +194,7 @@ test('real Git metadata validates common directories for gitfiles and worktrees'
     console.log(label + ': git=' + gitExit + ', async=' + display(asyncRoot) + ', sync=' + display(syncRoot));
   });
   await t.test('commondir preserves path whitespace and strips only the line ending', async () => {
+    if (process.platform === 'win32') return t.skip('Git for Windows cannot address directory names ending in spaces');
     const spacedCommon = join(f.dir, 'common metadata ');
     try {
       await symlink(join(main, '.git'), spacedCommon, process.platform === 'win32' ? 'junction' : 'dir');
