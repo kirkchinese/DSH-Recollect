@@ -2,6 +2,18 @@
 
 All notable changes to Recollect. Versions are listed with the DSH host line they target.
 
+## 0.5.0 — 2026-11-03
+
+Supports DSH `0.2.0-rc.2` and later, including the official Desktop; CI covers `0.2.1-rc.2` and `0.2.1-rc.5`.
+
+- Open-ended DSH engine and peer ranges so newer release candidates are not rejected by version checks; Node requirements stay unchanged.
+- Per-project Claude Code memory sharing via `memory.shareProjects`, alongside global sharing. Fixed memory directories take precedence; project aliases and worktrees resolve by Git root.
+- The Memory panel shows Claude Code's source directory and topic count, adds a project-sharing switch, and offers preview/confirmed imports through the Recollect Remote API. Configuration or directory changes invalidate previews.
+- `/memory-import` refuses disabled memory and shared current projects, skips per-project shares in all-project mode, and imports every project when a fixed directory overrides project sharing. Successful imports refresh matching root sessions, never subagents identified only by delegation depth. New command messages are available in Chinese and English.
+- Recall prefers the current model route; sandbox additional writable roots allow direct memory writes. Repository roots require a valid HEAD (a regular `ref:`/40/64-hex file or a legacy `refs/...` symlink, including unborn and packed refs) plus objects and refs directories; gitfile targets require a valid HEAD and objects/refs in their own directory or the resolved `commondir`. Common-directory records strip only the line ending, preserving legal path whitespace. Missing or broken common directories are rejected so discovery can continue at the parent. Synchronous and asynchronous discovery share the same validity policy.
+- Windows exclusion matching normalizes separators in both paths and patterns, including patterns expanded through the real configuration path; tests use native paths. CI adds a Windows/Node 22/DSH rc.5 job and Linux Node 22.19.0/24 across both host versions; installation notes document Windows shell limitations.
+- `renderClient()` checks the generated browser bundle in memory without writing tracked files. Added sharing, import, locale and UI regressions; existing model-facing text remains unchanged.
+
 ## 0.4.0 — 2026-10-26
 
 Targets the same DSH versions as 0.1.0.

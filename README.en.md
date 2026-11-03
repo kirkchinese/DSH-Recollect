@@ -24,26 +24,44 @@ In Claude Code, the memory-writing guidance depends on the model. Models outside
 | Memory format | **Same**: one file per memory with frontmatter (`name`, `description`, `metadata.type`), four types, `MEMORY.md` as the index |
 | Memory storage | **Separate by default**: Recollect writes to `~/.dsh/memory/projects/<slug>/`, Claude Code to `~/.claude/projects/<slug>/memory/`, with the same slug rule |
 | Existing Claude Code memories | Copy them with `/memory-import` (`all` for every project, `--dry-run` to preview). The source is only read, existing files are never overwritten, and index lines are merged by link |
-| One shared memory | Optional: `memory.shareWithClaudeCode: true` reads and writes Claude Code's directory directly. Both programs then edit the same files, and Claude Code's background consolidation also reorganizes them |
+| One shared memory | Optional globally (`memory.shareWithClaudeCode: true`) or per project (`memory.shareProjects`). The panel's **Share this project with Claude Code** switch controls the current project; **Preview import → Confirm import** copies memories once instead. Sharing lets both programs edit the same files, including Claude Code's background consolidation |
 | Not implemented | Team memory (`CLAUDE_MEMORY_STORES`), account memory, `#` quick capture |
 
 ## Install
 
 | DSH version | Recollect version |
 | --- | --- |
-| `0.2.0-rc.2` (including the official Desktop), `0.2.1-alpha.1` to `0.2.1-alpha.5`, `0.2.1-rc.1`, `0.2.1-rc.2` | `0.4.0` |
+| `0.2.0-rc.2` and later (including the official Desktop; tested with `0.2.1-rc.2` and `0.2.1-rc.5`) | `0.5.0` |
 
 **Official Desktop:** on the Plugins page, install the npm package `@kirkchinese/dsh-recollect`, or enter `https://github.com/kirkchinese/DSH-Recollect.git` as the Git address, then restart when prompted.
 
 **CLI and Web:**
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-recollect@0.4.0
+dsh plugin --profile web add @kirkchinese/dsh-recollect@0.5.0
 # or a release tag from the repository
-dsh plugin --profile web add "git+https://github.com/kirkchinese/DSH-Recollect.git#v0.4.0"
+dsh plugin --profile web add "git+https://github.com/kirkchinese/DSH-Recollect.git#v0.5.0"
 ```
 
 Restart DSH and reload the page. New sessions use Recollect. It takes over instruction-file loading and filters out what DSH's built-in AGENTS.md loader injects, so no file is loaded twice.
+
+### Installing on Windows
+
+Install the npm package from PowerShell (the official Desktop also accepts this npm package on its Plugins page):
+
+```powershell
+dsh plugin --profile web add "@kirkchinese/dsh-recollect@0.5.0"
+```
+
+Restart DSH and reload the page. Known platform differences:
+
+- Background extraction and dream helpers only allow bash read-only commands (plus restricted memory deletion). DSH uses pwsh on Windows, so these helpers cannot run shell commands there. Both features are off by default; ordinary memory reads/writes, sharing and imports are unaffected.
+- `instructions.managedDirs` defaults to `/etc/claude-code`, which normally does not exist on Windows. Set a real absolute directory if organization policies are needed.
+- Slugs follow Claude Code's rule: `C:\Users\me\proj` becomes `C--Users-me-proj`, so per-project sharing resolves to the same memories.
+
+### Version support policy
+
+`engines.dsh` sets only the lower bound `>=0.2.0-rc.2`, and DSH peer dependencies use open ranges. New DSH release candidates therefore are not blocked by installation checks. If a host interface changes, the affected feature may fail rather than the entire plugin being rejected because of a version ceiling. CI covers the two tested host versions above and Linux / Windows; an open range is not a promise that future interfaces never change.
 
 ## What it does
 
@@ -67,7 +85,9 @@ Memories live in `~/.dsh/memory/projects/<slug of the git root>/`, shared by all
 
 Two entry points share one form: the **Memory** section of the Settings dialog, and the Web sidebar's **Plugins** → Recollect → the `recollect` row. Adjust every option: memory on/off and write mode, the language of memory text, sharing with Claude Code, instruction wording and excludes, recall, background extraction and consolidation. Changes apply on save and are stored as a profile override; content already injected into a conversation updates at the next refresh.
 
-The Memory section opens with **What is loaded**: pick a working directory (by default the most recently active session's) to list the instruction files and memory index injected for it, with type and size, and the topic files in its memory directory with type, description and update time.
+The Memory section opens with **What is loaded**: pick a working directory (defaulting to the latest root session, excluding subagents) to list its injected instruction files and memory index with type and size, and its memory topic files with type, description and update time.
+
+The panel also shows the Claude Code memory directory and topic count. **Share this project with Claude Code** saves the selection by Git root; turning it off removes every alias for that project. The switch is disabled when sharing globally, using a fixed `memory.directory`, or editing a read-only form. For an independent copy, choose **Preview import**, inspect copied/identical/conflicting counts, then **Confirm import**; conflicts keep existing files. Changing directory or configuration revision invalidates old previews. After import, root sessions using the target memory directory refresh on their next request.
 
 ## Commands
 
@@ -76,8 +96,10 @@ The Memory section opens with **What is loaded**: pick a working directory (by d
 | `/memory` | Memory status, write mode, and every loaded instruction and memory file |
 | `/pause-memory` | Pause or resume memory for this session (kept across restarts) |
 | `/remember <text>` | Ask the model to save `text` to memory |
-| `/memory-import [all] [--dry-run]` | Copy existing Claude Code memories into Recollect's directory |
+| `/memory-import [all] [--dry-run]` | Copy Claude Code memories; refuse a shared current project, skip per-project shares in `all`, and preview with `--dry-run` |
 | `/dream` | Consolidate this project's memory now (requires dream to be enabled) |
+
+Imports are refused while memory is disabled. Global sharing refuses `all`; a single-project import is refused only when that project actually shares memory. A fixed `memory.directory` overrides sharing: with only `shareProjects` configured, `all` imports every project into that fixed directory without skipping any. Sources stay read-only, existing target files are kept, and index lines are merged by link. Command output follows `language`.
 
 ## Configuration
 
@@ -87,11 +109,18 @@ You can also edit the profile's `cordis.patch.yml` by hand. A hand-written overr
 - id: recollect
   name: '@kirkchinese/dsh-recollect'
   config:
-    language: en          # language of model-facing memory text: zh / en
+    language: en          # memory text and command output: zh / en
+    memory:
+      shareWithClaudeCode: false  # share all projects with Claude Code
+      shareProjects: []          # absolute project directories matched by Git root
+      directory: ""              # fixed directory overrides all sharing settings
+      claudeHome: ""             # empty: $CLAUDE_CONFIG_DIR or ~/.claude
     recall: { enabled: true, method: bm25 }
     instructions:
       authority: strong   # strong: instruction files override default behavior (as in Claude Code); soft: guidance only
 ```
+
+Precedence: fixed `memory.directory` → global `shareWithClaudeCode` → per-project `shareProjects` → independent `memory.root/projects/<slug>/`. Empty or incomplete `.git` directories are not repository roots; without a valid repository, the working directory is used.
 
 Every field is listed in [lib/config.js](lib/config.js). `DSH_RECOLLECT_DISABLE_MEMORY=1` turns memory off (`0` forces it on), and `DSH_RECOLLECT_DISABLE_INSTRUCTIONS=1` turns instruction files off.
 

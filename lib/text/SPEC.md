@@ -293,4 +293,10 @@ A prompt for a helper that tidies the memory directory. Its structure:
 'files'|'tools'|'readonly', dir, recall, extract, dream, files: [{type, path, chars}], total,
 warn }` and returns a short multi-line status report.
 
-`commands.import`: `description`, `hint`, `shared` (memory is already shared with Claude Code, so there is nothing to import) and `result({ dryRun, claudeHome, results: [{ slug, to, copied, identical, conflicts, indexAdded }] })`, a short per-project report.
+`commands.import`: `description`, `hint`, `shared` (all projects share memory, so importing is unnecessary),
+`projectShared` (this project shares memory, so importing it is unnecessary), `skipShared(slug)`
+(a per-project line reporting that an all-project import skipped a shared project), `disabled`
+(importing is refused while memory is disabled), and
+`result({ dryRun, claudeHome, results: [{ slug, to, copied, identical, conflicts, indexAdded }] })`,
+a short per-project report. A fixed memory directory overrides project sharing: all-project
+imports then skip no projects. Global sharing still refuses an all-project import.

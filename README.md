@@ -24,30 +24,48 @@ Recollect 是 [DeepSeek Harness（DSH）](https://github.com/deepseek-ai/deepsee
 | 记忆格式 | **一致**：每条记忆一个文件，带 frontmatter（`name`、`description`、`metadata.type`），四种类型，`MEMORY.md` 作索引 |
 | 记忆存储 | **默认分开存放**：Recollect 写在 `~/.dsh/memory/projects/<slug>/`，Claude Code 写在 `~/.claude/projects/<slug>/memory/`。两边的 slug 计算规则相同 |
 | 已有的 Claude Code 记忆 | 用 `/memory-import` 复制过来（`all` 导入全部项目，`--dry-run` 只预览）。来源只读，不会覆盖已有文件，索引按链接去重后合并 |
-| 共用同一份记忆 | 可选：设置 `memory.shareWithClaudeCode: true` 后直接读写 Claude Code 的目录。两边会同时修改这些文件，Claude Code 的后台整理也会整理它们 |
+| 共用同一份记忆 | 可选全局共用（`memory.shareWithClaudeCode: true`）或按项目共用（`memory.shareProjects`）。面板中的「与 Claude Code 共用本项目」开关控制当前项目；「预览导入 → 确认导入」按钮用于一次性复制。共用时两边会修改同一批文件，Claude Code 的后台整理也会整理它们 |
 | 未实现 | 团队记忆（`CLAUDE_MEMORY_STORES`）、账号记忆、`#` 快捷写入 |
 
 ## 安装
 
 | DSH 版本 | Recollect 版本 |
 | --- | --- |
-| `0.2.0-rc.2`（含官方桌面版）、`0.2.1-alpha.1` 至 `0.2.1-alpha.5`、`0.2.1-rc.1`、`0.2.1-rc.2` | `0.4.0` |
+| `0.2.0-rc.2` 及以后（含官方桌面版；已测 `0.2.1-rc.2`、`0.2.1-rc.5`） | `0.5.0` |
 
 **官方桌面版：** 在插件页安装 npm 包 `@kirkchinese/dsh-recollect`，或在 Git 地址一栏填写 `https://github.com/kirkchinese/DSH-Recollect.git`，然后按提示重启。
 
 **命令行与 Web：**
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-recollect@0.4.0
+dsh plugin --profile web add @kirkchinese/dsh-recollect@0.5.0
 ```
 
 也可以从仓库安装某个发布标签：
 
 ```sh
-dsh plugin --profile web add "git+https://github.com/kirkchinese/DSH-Recollect.git#v0.4.0"
+dsh plugin --profile web add "git+https://github.com/kirkchinese/DSH-Recollect.git#v0.5.0"
 ```
 
 安装后重启 DSH 并刷新页面，新会话生效。Recollect 会接管指令文件的加载，并自动过滤 DSH 自带的 AGENTS.md 加载器注入的内容，避免同一份文件被读两次。
+
+### 在 Windows 上安装
+
+在 PowerShell 中通过 npm 包安装（官方桌面版也可以在插件页填写同一个 npm 包名）：
+
+```powershell
+dsh plugin --profile web add "@kirkchinese/dsh-recollect@0.5.0"
+```
+
+安装后重启 DSH 并刷新页面。已知的平台差异：
+
+- 后台提取和 dream 的子代理只放行 bash 只读命令（以及受限的记忆删除命令）；Windows 上 DSH 使用 pwsh，因此它们不能运行 shell 命令。这两个功能默认关闭；常规记忆读写、共用与导入不受此限制。
+- `instructions.managedDirs` 默认是 `/etc/claude-code`，Windows 通常没有这个目录；需要组织策略时改成实际存在的绝对目录。
+- slug 与 Claude Code 使用同一规则：`C:\Users\me\proj` 会变成 `C--Users-me-proj`，按项目共用时能匹配同一份记忆。
+
+### 版本支持策略
+
+`engines.dsh` 只设下限 `>=0.2.0-rc.2`，DSH peer 依赖也使用开放范围，因此新的 DSH rc 不会被安装检查拦下。如果宿主接口变化，相关功能会报错，而不是因为版本上限导致整个插件被拒绝加载。CI 覆盖上表两个已测宿主版本，以及 Linux / Windows；开放范围并不代表未来接口永远不变。
 
 ## 它做什么
 
@@ -71,7 +89,9 @@ dsh plugin --profile web add "git+https://github.com/kirkchinese/DSH-Recollect.g
 
 有两个入口：「设置」弹窗左侧的「记忆」分区，以及侧边栏「插件」→ Recollect → 组件行「recollect」。两处是同一份表单，可以调整全部选项：记忆开关与写入方式、记忆文本语言、是否与 Claude Code 共用目录、指令文件的措辞强度与排除规则、召回、后台提取和整理。保存后立即生效，并写入 profile 覆盖；当前对话里已经注入的内容会在下次刷新时更新。
 
-「记忆」分区顶部是「当前加载情况」：选一个工作目录（默认是最近活动的会话所在目录），列出会注入给模型的指令文件和记忆索引（类型与字符数），以及记忆目录里的主题文件（类型、描述、更新时间）。
+「记忆」分区顶部是「当前加载情况」：选一个工作目录（默认取最近的根会话，排除子代理），列出会注入给模型的指令文件和记忆索引（类型与字符数），以及记忆目录里的主题文件（类型、描述、更新时间）。
+
+面板显示 Claude Code 的记忆目录和主题文件条数。「与 Claude Code 共用本项目」按 Git 根目录保存选择；关闭时会移除该项目的全部别名。全局共用、设置固定 `memory.directory` 或表单不可写时，开关不可用。要保留独立副本，点击「预览导入」，检查复制/相同/冲突数量后再「确认导入」；冲突保留现有文件。切换目录或配置版本变化会清除旧预览。导入后，使用同一目标记忆目录的根会话会在下一次请求时刷新。
 
 ## 命令
 
@@ -80,8 +100,10 @@ dsh plugin --profile web add "git+https://github.com/kirkchinese/DSH-Recollect.g
 | `/memory` | 查看记忆状态、写入方式和已加载的全部指令与记忆文件 |
 | `/pause-memory` | 在本会话中暂停或恢复记忆，状态在重启后保留 |
 | `/remember <内容>` | 让模型把这句话存进记忆 |
-| `/memory-import [all] [--dry-run]` | 把 Claude Code 已有的记忆复制到 Recollect 的记忆目录 |
+| `/memory-import [all] [--dry-run]` | 复制 Claude Code 已有记忆；单项目已共用则拒绝，`all` 跳过按项目共用的目录，`--dry-run` 只预览 |
 | `/dream` | 立即整理本项目的记忆目录（需先开启 dream） |
+
+记忆关闭时禁止导入。全局共用时 `all` 拒绝执行；单项目只在该项目实际共用时拒绝。固定 `memory.directory` 优先于共用选择；仅配置 `shareProjects` 时，`all` 会把所有项目导入固定目录，不跳过任何项目。来源始终只读，目标同名文件不覆盖，索引按链接去重合并。命令输出随 `language` 使用中文或英文。
 
 ## 配置
 
@@ -91,7 +113,12 @@ dsh plugin --profile web add "git+https://github.com/kirkchinese/DSH-Recollect.g
 - id: recollect
   name: '@kirkchinese/dsh-recollect'
   config:
-    language: zh          # 模型看到的记忆文本语言：zh / en
+    language: zh          # 记忆文本与命令输出语言：zh / en
+    memory:
+      shareWithClaudeCode: false  # 所有项目共用 Claude Code 记忆
+      shareProjects: []          # 按 Git 根目录匹配的绝对项目目录
+      directory: ""              # 固定目录优先于全局和按项目共用
+      claudeHome: ""             # 留空使用 $CLAUDE_CONFIG_DIR 或 ~/.claude
     recall:
       enabled: true
       method: bm25        # 或 selector
@@ -104,6 +131,8 @@ dsh plugin --profile web add "git+https://github.com/kirkchinese/DSH-Recollect.g
     instructions:
       authority: strong   # strong：指令文件优先于默认行为（与 Claude Code 一致）；soft：仅作参考
 ```
+
+共用优先级：固定 `memory.directory` → 全局 `shareWithClaudeCode` → 按项目 `shareProjects` → 独立的 `memory.root/projects/<slug>/`。空或不完整的 `.git` 目录不再算仓库根；无有效仓库时使用工作目录。
 
 全部字段见 [lib/config.js](lib/config.js)。环境变量 `DSH_RECOLLECT_DISABLE_MEMORY=1` 关闭记忆（设为 `0` 则强制开启），`DSH_RECOLLECT_DISABLE_INSTRUCTIONS=1` 关闭指令文件。
 

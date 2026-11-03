@@ -1,6 +1,6 @@
 {
   "name": "@kirkchinese/dsh-recollect",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Claude-Code-compatible memory for every model in DeepSeek Harness: layered CLAUDE.md/AGENTS.md instructions with @import and rules, a persistent MEMORY.md memory with full writing guidance, refresh on resume and compaction, optional recall, background extraction and consolidation.",
   "keywords": [
     "deepseek-harness",
@@ -27,7 +27,8 @@
   "author": "kirkchinese",
   "type": "module",
   "engines": {
-    "node": "^22.19.0 || >=24.0.0"
+    "node": "^22.19.0 || >=24.0.0",
+    "dsh": ">=0.2.0-rc.2"
   },
   "publishConfig": {
     "access": "public",
@@ -64,11 +65,11 @@
     "README.en.md"
   ],
   "peerDependencies": {
-    "@deepseek-ai/dsh-llm": "0.2.0-rc.2 || 0.2.1-alpha.1 || 0.2.1-alpha.2 || 0.2.1-alpha.3 || 0.2.1-alpha.4 || 0.2.1-alpha.5 || 0.2.1-rc.1 || 0.2.1-rc.2",
-    "@deepseek-ai/dsh-tools": "0.2.0-rc.2 || 0.2.1-alpha.1 || 0.2.1-alpha.2 || 0.2.1-alpha.3 || 0.2.1-alpha.4 || 0.2.1-alpha.5 || 0.2.1-rc.1 || 0.2.1-rc.2",
-    "@deepseek-ai/dsh-session": "0.2.0-rc.2 || 0.2.1-alpha.1 || 0.2.1-alpha.2 || 0.2.1-alpha.3 || 0.2.1-alpha.4 || 0.2.1-alpha.5 || 0.2.1-rc.1 || 0.2.1-rc.2",
-    "@deepseek-ai/schemastery": "3.18.4 || 3.18.5-alpha.1 || 3.18.5-alpha.2 || 3.18.5",
-    "@deepseek-ai/dsh-typert-protocol": "0.2.0-rc.2 || 0.2.1-alpha.1 || 0.2.1-alpha.2 || 0.2.1-alpha.3 || 0.2.1-alpha.4 || 0.2.1-alpha.5 || 0.2.1-rc.1 || 0.2.1-rc.2"
+    "@deepseek-ai/dsh-llm": ">=0.2.0-rc.2",
+    "@deepseek-ai/dsh-tools": ">=0.2.0-rc.2",
+    "@deepseek-ai/dsh-session": ">=0.2.0-rc.2",
+    "@deepseek-ai/schemastery": ">=3.18.4",
+    "@deepseek-ai/dsh-typert-protocol": ">=0.2.0-rc.2"
   },
   "scripts": {
     "test": "node --test test/*.test.js",

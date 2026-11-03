@@ -10,6 +10,7 @@ export const FIELDS = [
   { section: 'memory', path: 'memory.writeMode', kind: 'enum', options: ['auto', 'files', 'tools'] },
   { section: 'memory', path: 'memory.lint', kind: 'bool' },
   { section: 'memory', path: 'memory.shareWithClaudeCode', kind: 'bool' },
+  { section: 'memory', path: 'memory.shareProjects', kind: 'list' },
   { section: 'memory', path: 'memory.root', kind: 'text' },
   { section: 'memory', path: 'memory.directory', kind: 'text' },
   { section: 'memory', path: 'memory.claudeHome', kind: 'text' },

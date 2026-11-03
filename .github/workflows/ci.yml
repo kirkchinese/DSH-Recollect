@@ -7,23 +7,25 @@ on:
 
 jobs:
   test:
-    name: ${{ matrix.os }} / Node ${{ matrix.node }} / DSH 0.2.1-rc.2
+    name: ${{ matrix.os }} / Node ${{ matrix.node }} / DSH ${{ matrix.dsh }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-latest]
+        node: ['22.19.0', '24']
+        dsh: ['0.2.1-rc.2', '0.2.1-rc.5']
         include:
-          - node: 22.19.0
-            os: ubuntu-latest
-          - node: '24'
-            os: ubuntu-latest
+          - os: windows-latest
+            node: '22'
+            dsh: '0.2.1-rc.5'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
       - name: Install DSH host packages for tests
-        run: npm install --no-save --no-package-lock @deepseek-ai/dsh-llm@0.2.1-rc.2 @deepseek-ai/dsh-tools@0.2.1-rc.2 @deepseek-ai/dsh-session@0.2.1-rc.2 @deepseek-ai/schemastery@3.18.5
+        run: npm install --no-save --no-package-lock @deepseek-ai/dsh-llm@${{ matrix.dsh }} @deepseek-ai/dsh-tools@${{ matrix.dsh }} @deepseek-ai/dsh-session@${{ matrix.dsh }} @deepseek-ai/dsh-typert-protocol@${{ matrix.dsh }} @deepseek-ai/schemastery@3.18.5
       - run: npm test
       - run: npm pack --dry-run
       - run: git diff --check

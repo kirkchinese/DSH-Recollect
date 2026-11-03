@@ -6,7 +6,7 @@
 		const h = React.createElement;
 		const NS = "recollectSettings." + ROW_ID;
 
-		const CSS = ".ccm-root{display:grid;gap:4px;min-width:0;max-width:100%;overflow-wrap:anywhere}.ccm-root *{min-width:0}.ccm-label{font-size:13px;line-height:1.5;color:var(--dsw-alias-label-primary)}.ccm-seg{max-width:100%;overflow-x:auto}.ccm-seg *{min-width:auto}.ccm-section,.ccm-row,.ccm-line{min-width:0;max-width:100%}.ccm-line>span{min-width:0}.ccm-big{font-size:15px;margin-top:16px}.ccm-sub{font-size:13px;font-weight:600;margin:10px 0 2px;color:var(--dsw-alias-label-primary)}.ccm-status-head{display:flex;gap:8px;align-items:center}.ccm-input{flex:1;min-width:0;height:30px;padding:0 10px;border-radius:8px;border:1px solid var(--dsw-alias-separator, rgba(127,127,127,.3));background:transparent;color:var(--dsw-alias-label-primary);font-size:12px;font-family:var(--dsw-font-mono, monospace)}.ccm-kv{display:flex;gap:12px;font-size:13px;line-height:1.6}.ccm-k{color:var(--dsw-alias-label-tertiary);min-width:96px}.ccm-v{color:var(--dsw-alias-label-primary);word-break:break-all}.ccm-list{list-style:none;margin:0;padding:0;display:grid;gap:4px}.ccm-list li{display:flex;gap:8px;align-items:baseline;font-size:12px;line-height:1.5;flex-wrap:wrap}.ccm-path{color:var(--dsw-alias-label-primary);word-break:break-all}.ccm-desc{color:var(--dsw-alias-label-secondary, inherit);flex:1;min-width:200px}.ccm-meta{color:var(--dsw-alias-label-tertiary);margin-left:auto}.ccm-warn{font-size:12px;color:var(--dsw-alias-warning, #b26a00);margin:0}.ccm-chips{display:flex;flex-wrap:wrap;gap:6px}.ccm-chip{font-size:11px;padding:2px 8px;border-radius:10px;border:1px solid var(--dsw-alias-separator, rgba(127,127,127,.3));background:none;color:var(--dsw-alias-label-secondary, inherit);cursor:pointer}.ccm-chip-on{border-color:var(--dsw-alias-link);color:var(--dsw-alias-link)}.ccm-section{display:grid;gap:12px;padding:4px 0 16px;border-bottom:1px solid var(--dsw-alias-separator, rgba(127,127,127,.18))}.ccm-section:last-of-type{border-bottom:none}.ccm-title{font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary);margin:8px 0 0}.ccm-intro{font-size:12px;line-height:1.5;color:var(--dsw-alias-label-tertiary);margin:0}.ccm-row{display:grid;gap:4px}.ccm-line{display:flex;justify-content:space-between;align-items:center;gap:16px;font-size:13px;line-height:1.5;color:var(--dsw-alias-label-primary)}.ccm-hint{font-size:12px;line-height:1.5;color:var(--dsw-alias-label-tertiary);margin:0}.ccm-reset{background:none;border:none;padding:0;font-size:12px;color:var(--dsw-alias-link);cursor:pointer}.ccm-reset:disabled{cursor:default;opacity:.5}.ccm-tag{font-size:11px;color:var(--dsw-alias-label-tertiary);margin-left:6px}.ccm-note{font-size:12px;color:var(--dsw-alias-label-tertiary);margin:0}";
+		const CSS = ".ccm-root{display:grid;gap:4px;min-width:0;max-width:100%;overflow-wrap:anywhere}.ccm-root *{min-width:0}.ccm-label{font-size:13px;line-height:1.5;color:var(--dsw-alias-label-primary)}.ccm-seg{max-width:100%;overflow-x:auto}.ccm-seg *{min-width:auto}.ccm-section,.ccm-row,.ccm-line{min-width:0;max-width:100%}.ccm-line>span{min-width:0}.ccm-big{font-size:15px;margin-top:16px}.ccm-sub{font-size:13px;font-weight:600;margin:10px 0 2px;color:var(--dsw-alias-label-primary)}.ccm-status-head{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.ccm-actions{display:flex;gap:8px;flex-wrap:wrap}.ccm-import-result{min-width:0;overflow-wrap:anywhere}.ccm-input{flex:1;min-width:0;height:30px;padding:0 10px;border-radius:8px;border:1px solid var(--dsw-alias-separator, rgba(127,127,127,.3));background:transparent;color:var(--dsw-alias-label-primary);font-size:12px;font-family:var(--dsw-font-mono, monospace)}.ccm-kv{display:flex;gap:12px;font-size:13px;line-height:1.6}.ccm-k{color:var(--dsw-alias-label-tertiary);min-width:96px}.ccm-v{color:var(--dsw-alias-label-primary);word-break:break-all}.ccm-list{list-style:none;margin:0;padding:0;display:grid;gap:4px}.ccm-list li{display:flex;gap:8px;align-items:baseline;font-size:12px;line-height:1.5;flex-wrap:wrap}.ccm-path{color:var(--dsw-alias-label-primary);word-break:break-all}.ccm-desc{color:var(--dsw-alias-label-secondary, inherit);flex:1;min-width:min(200px,100%)}.ccm-meta{color:var(--dsw-alias-label-tertiary);margin-left:auto}.ccm-warn{font-size:12px;color:var(--dsw-alias-warning, #b26a00);margin:0}.ccm-chips{display:flex;flex-wrap:wrap;gap:6px}.ccm-chip{font-size:11px;padding:2px 8px;border-radius:10px;border:1px solid var(--dsw-alias-separator, rgba(127,127,127,.3));background:none;color:var(--dsw-alias-label-secondary, inherit);cursor:pointer}.ccm-chip-on{border-color:var(--dsw-alias-link);color:var(--dsw-alias-link)}.ccm-section{display:grid;gap:12px;padding:4px 0 16px;border-bottom:1px solid var(--dsw-alias-separator, rgba(127,127,127,.18))}.ccm-section:last-of-type{border-bottom:none}.ccm-title{font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary);margin:8px 0 0}.ccm-intro{font-size:12px;line-height:1.5;color:var(--dsw-alias-label-tertiary);margin:0}.ccm-row{display:grid;gap:4px}.ccm-line{display:flex;justify-content:space-between;align-items:center;gap:16px;font-size:13px;line-height:1.5;color:var(--dsw-alias-label-primary)}.ccm-hint{font-size:12px;line-height:1.5;color:var(--dsw-alias-label-tertiary);margin:0}.ccm-reset{background:none;border:none;padding:0;font-size:12px;color:var(--dsw-alias-link);cursor:pointer}.ccm-reset:disabled{cursor:default;opacity:.5}.ccm-tag{font-size:11px;color:var(--dsw-alias-label-tertiary);margin-left:6px}.ccm-note{font-size:12px;color:var(--dsw-alias-label-tertiary);margin:0}";
 		const injectCss = () => {
 			if (typeof document === "undefined") return;
 			const id = PACKAGE + "/settings.css";
@@ -162,7 +162,7 @@
 			});
 		}
 
-		// ---- Remote status (read-only) ----
+		// ---- Remote status and preview/confirmed import ----
 		const isObj = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
 		const STATUS = {
 			id: PACKAGE + "#" + SERVICE + "/status",
@@ -176,43 +176,114 @@
 			sourceLocation: { file: "index.js", line: 1, column: 1 },
 		};
 
+		const IMPORT = {
+			...STATUS,
+			id: PACKAGE + "#" + SERVICE + "/import",
+			method: "import",
+			parameters: [{ name: "request", wire: "request", source: "json", codec: { mode: "strict", typeSymbol: PACKAGE + "#ImportRequest", create: () => ({ parse: (v) => { if (!isObj(v) || typeof v.dryRun !== "boolean") throw new TypeError("invalid import request"); return v; } }) } }],
+			result: { mode: "strict", typeSymbol: PACKAGE + "#ImportResponse", create: () => ({ parse: (v) => { if (!isObj(v) || !Array.isArray(v.copied)) throw new TypeError("invalid import response"); return v; } }) },
+		};
+		const unwrap = (res) => {
+			if (res && res.ok === false) throw new Error(String(res.error?.message ?? "failed"));
+			return res && "value" in res ? res.value : res;
+		};
+
 		const fmtTime = (iso) => { try { return new Date(iso).toLocaleString(); } catch (_e) { return iso; } };
 
 		/** Loaded instruction and memory files for one working directory. */
 		function StatusPanel(props) {
-			const { t, status } = props;
+			const { t, status, importMemory, form } = props;
 			const [cwd, setCwd] = React.useState("");
 			const [data, setData] = React.useState(undefined);
 			const [state, setState] = React.useState("loading");
-			const load = React.useCallback(async (dir) => {
+			const [busy, setBusy] = React.useState(false);
+			const [error, setError] = React.useState("");
+			const [result, setResult] = React.useState(undefined);
+			const sequence = React.useRef(0);
+			const operation = React.useRef(false);
+			const selected = React.useRef("");
+			const load = React.useCallback(async (dir, keepResult = false) => {
+				const id = ++sequence.current;
+				selected.current = dir;
 				setState("loading");
+				if (!keepResult) { setResult(undefined); setError(""); }
 				try {
-					const res = await status(dir ? { cwd: dir } : {});
-					if (res && res.ok === false) throw new Error(String(res.error?.message ?? "failed"));
-					const value = res && "value" in res ? res.value : res;
+					const value = unwrap(await status(dir ? { cwd: dir } : {}));
+					if (id !== sequence.current) return;
+					selected.current = value.cwd;
 					setData(value);
 					setCwd(value.cwd);
 					setState("ready");
 				} catch (_e) {
-					setState("failed");
+					if (id === sequence.current) setState("failed");
 				}
 			}, [status]);
-			React.useEffect(() => { void load(""); }, [load]);
+			React.useEffect(() => { void load(selected.current); }, [load, form?.state?.revision]);
+			const writable = form?.state?.status === "ready" && form.state.writable !== false;
+			const memory = form?.state?.value?.memory ?? {};
+			const toggle = async (on) => {
+				if (!writable || operation.current || state !== "ready" || cwd !== data.cwd || memory.directory || memory.shareWithClaudeCode) return;
+				operation.current = true;
+				setBusy(true); setError(""); setResult(undefined);
+				try {
+					const list = memory.shareProjects ?? [];
+					const entries = new Set(data.share.entries ?? []);
+					entries.add(data.projectRoot);
+					const next = on ? (list.some(entry => entries.has(entry)) ? [...list] : [...list, data.projectRoot]) : list.filter(entry => !entries.has(entry));
+					const ok = await form.mutate([{ op: "set", path: ["memory", "shareProjects"], value: next }], form.state.revision);
+					if (!ok) throw new Error("mutation rejected");
+					await load(data.cwd);
+				} catch (_e) { setError("status.share.failed"); }
+				finally { operation.current = false; setBusy(false); }
+			};
+			const importNow = async (dryRun) => {
+				if (operation.current || state !== "ready" || cwd !== data.cwd || data.share.active || !data.claude.count || !importMemory) return;
+				if (!dryRun && (!result?.dryRun || result.refused || result.revision !== form?.state?.revision)) return;
+				operation.current = true;
+				setBusy(true); setError("");
+				const revision = form?.state?.revision;
+				const id = sequence.current;
+				try {
+					const value = unwrap(await importMemory({ cwd: data.cwd, dryRun }));
+					if (id !== sequence.current) return;
+					setResult({ ...value, revision });
+					if (!dryRun && !value.refused) await load(data.cwd, true);
+				} catch (_e) { setResult(undefined); setError("status.import.failed"); }
+				finally { operation.current = false; setBusy(false); }
+			};
 			const head = h("div", { className: "ccm-status-head" },
-				h("input", { className: "ccm-input", value: cwd, placeholder: t("status.cwdPlaceholder"), onChange: (e) => setCwd(e.target.value), onKeyDown: (e) => { if (e.key === "Enter") void load(cwd); } }),
-				h(P.Button, { variant: "outline", size: "sm", onClick: () => void load(cwd) }, t("status.refresh")));
+				h("input", { className: "ccm-input", value: cwd, disabled: busy, placeholder: t("status.cwdPlaceholder"), onChange: (e) => { setCwd(e.target.value); setResult(undefined); setError(""); }, onKeyDown: (e) => { if (e.key === "Enter" && !busy) void load(cwd); } }),
+				h(P.Button, { variant: "outline", size: "sm", disabled: busy, onClick: () => void load(cwd) }, t("status.refresh")));
 			if (state === "loading" && data === undefined) return h("section", { className: "ccm-section" }, h("h3", { className: "ccm-title" }, t("status.title")), head, h("p", { className: "ccm-hint" }, t("status.loading")));
 			if (state === "failed") return h("section", { className: "ccm-section" }, h("h3", { className: "ccm-title" }, t("status.title")), head, h("p", { className: "ccm-hint" }, t("status.failed")));
 			const d = data;
+			const fixed = Boolean(memory.directory) || d.share.via === "directory";
+			const globalShare = !fixed && (memory.shareWithClaudeCode === true || d.share.via === "global");
+			const importDisabled = busy || state !== "ready" || cwd !== d.cwd || d.share.active || d.claude.count === 0 || !importMemory;
+			const importSummary = result && !result.refused ? t("status.import.summary").replace("{copied}", String(result.copied.length)).replace("{identical}", String(result.identical.length)).replace("{conflicts}", String(result.conflicts.length)).replace("{index}", String(result.indexAdded)) : "";
 			const kv = (k, v) => h("div", { className: "ccm-kv" }, h("span", { className: "ccm-k" }, k), h("span", { className: "ccm-v" }, v));
 			return h("section", { className: "ccm-section" },
 				h("h3", { className: "ccm-title" }, t("status.title")),
 				h("p", { className: "ccm-intro" }, t("status.intro")),
 				head,
-				d.dirs && d.dirs.length > 1 ? h("div", { className: "ccm-chips" }, d.dirs.map((dir) => h("button", { type: "button", key: dir, className: "ccm-chip" + (dir === d.cwd ? " ccm-chip-on" : ""), onClick: () => void load(dir) }, dir))) : null,
+				d.dirs && d.dirs.length > 1 ? h("div", { className: "ccm-chips" }, d.dirs.map((dir) => h("button", { type: "button", key: dir, className: "ccm-chip" + (dir === d.cwd ? " ccm-chip-on" : ""), disabled: busy, onClick: () => void load(dir) }, dir))) : null,
 				kv(t("status.memory"), t("status.memory." + d.memory)),
 				kv(t("status.mode"), t("o.memory.writeMode." + (d.mode === "readonly" ? "readonly" : d.mode))),
 				kv(t("status.memoryDir"), h("code", null, d.memoryDir)),
+				h("div", { className: "ccm-row" },
+					h("label", { className: "ccm-line" }, h("span", null, t("status.share.label")),
+						h(P.Switch, { label: t("status.share.label"), checked: globalShare || (d.share.active && d.share.via === "project"), disabled: busy || state !== "ready" || cwd !== d.cwd || !writable || fixed || globalShare, onChange: (on) => void toggle(on) })),
+					fixed || globalShare ? h("p", { className: "ccm-hint" }, t(fixed ? "status.share.directory" : "status.share.global")) : null,
+					h("p", { className: "ccm-hint" }, t("status.share.note"))),
+				h("h4", { className: "ccm-sub" }, t("status.claude") + " · " + d.claude.count),
+				h("code", { className: "ccm-path" }, d.claude.dir),
+				h("div", { className: "ccm-actions" },
+					h(P.Button, { variant: "outline", size: "sm", disabled: importDisabled, onClick: () => void importNow(true) }, t("status.import.preview")),
+					result?.dryRun && !result.refused && result.revision === form?.state?.revision ? h(P.Button, { variant: "outline", size: "sm", disabled: importDisabled, onClick: () => void importNow(false) }, t("status.import.confirm")) : null),
+				result ? h("div", { className: "ccm-import-result", role: "status" },
+					h("p", { className: "ccm-hint" }, result.refused ? t("status.import.refused." + result.refused) : t(result.dryRun ? "status.import.previewed" : "status.import.done") + " " + importSummary),
+					result.conflicts.length ? h("p", { className: "ccm-warn" }, t("status.import.conflicts") + ": " + result.conflicts.join(", ")) : null) : null,
+				error ? h("p", { className: "ccm-warn", role: "alert" }, t(error)) : null,
 				h("h4", { className: "ccm-sub" }, t("status.files") + " · " + d.files.length + " · " + d.total.toLocaleString() + " " + t("status.chars")),
 				d.warn ? h("p", { className: "ccm-warn" }, t("status.warn").replace("{n}", String(d.warn))) : null,
 				d.files.length === 0 ? h("p", { className: "ccm-hint" }, t("status.noFiles")) :
@@ -235,7 +306,7 @@
 			const snapshot = React.useSyncExternalStore(configForm.subscribe.bind(configForm), configForm.getSnapshot.bind(configForm));
 			const form = { state: snapshot, mutate: (ops, rev) => configForm.mutate(ops, rev) };
 			return h("div", { className: "ccm-root" },
-				props.status ? h(StatusPanel, { t, status: props.status }) : null,
+				props.status ? h(StatusPanel, { t, status: props.status, importMemory: props.importMemory, form }) : null,
 				h("h3", { className: "ccm-title ccm-big" }, t("settingsTitle")),
 				h(SettingsPage, { t, view: "page", form }));
 		}
@@ -251,24 +322,24 @@
 				locale: NS,
 			}, SettingsPage)), PACKAGE + ": plugin page");
 			const configForm = ctx.configForms.get(ROW_ID);
-			const registerSection = (status) => ctx.slots.register({
+			const registerSection = (status, importMemory) => ctx.slots.register({
 				name: "settings.section",
 				id: ROW_ID,
 				order: 46,
 				label: () => t("sectionLabel"),
 				locale: NS,
-				inject: () => ({ configForm, status }),
+				inject: () => ({ configForm, status, importMemory }),
 			}, SettingsSection);
 			let unmount;
 			try {
-				unmount = await ctx.remote.$mount({ package: PACKAGE, descriptors: [STATUS] });
+				unmount = await ctx.remote.$mount({ package: PACKAGE, descriptors: [STATUS, IMPORT] });
 			} catch (_error) {
 				unmount = undefined;
 			}
 			if (unmount) ctx.effect(() => () => { void unmount(); }, PACKAGE + ": remote");
 			if (unmount) {
 				ctx.inject(["remote." + SERVICE], (rctx) => {
-					rctx.effect(() => rctx.slots.inject("settings.section", () => registerSection((req) => rctx.remote[SERVICE].status(req))), PACKAGE + ": settings section");
+					rctx.effect(() => rctx.slots.inject("settings.section", () => registerSection((req) => rctx.remote[SERVICE].status(req), (req) => rctx.remote[SERVICE].import(req))), PACKAGE + ": settings section");
 				});
 			} else {
 				ctx.effect(() => ctx.slots.inject("settings.section", () => registerSection(undefined)), PACKAGE + ": settings section");

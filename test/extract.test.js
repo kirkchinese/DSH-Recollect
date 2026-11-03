@@ -4,7 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, writeFile, symlink, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, sep } from 'node:path';
 import { MEMORY_TOOL_NAMES, shellWords, isMemoryMarkdownPath, canonicalMemoryPath, isReadOnlyCommand, isMemoryRemoveCommand, createChildToolPolicy, createStepBudget } from '../lib/guard.js';
 import { hasUserProse, inspectExtractionRange, renderExtractionPrompt, scanMemories, changedMemoryPaths, memoryManifest, memoryUpdateText, createExtractor } from '../lib/extract.js';
 
@@ -36,7 +36,7 @@ test('rm accepts only absolute contained markdown paths and conservative flags',
 
 test('path containment and canonical symlink confinement', async t => {
   const dir = await temp(t), mem = join(dir, 'mem'), outside = join(dir, 'outside');
-  await mkdir(mem); await mkdir(outside); await symlink(outside, join(mem, 'escape'));
+  await mkdir(mem); await mkdir(outside); await symlink(outside, join(mem, 'escape'), process.platform === 'win32' ? 'junction' : 'dir');
   assert.equal(isMemoryMarkdownPath('mem/a.md', mem, dir), true);
   assert.equal(isMemoryMarkdownPath('../outside/a.md', mem, mem), false);
   assert.equal(isMemoryMarkdownPath(join(dir, 'memory/a.md'), mem), false);
@@ -54,7 +54,8 @@ test('policy is child-only, restricts mutations and budgets count total steps', 
   assert.equal(policy.guard(exec('write', { file_path: join(dir, 'new.md') })), undefined);
   assert.match(policy.guard(exec('write', { file_path: '/etc/wrong.md' })), /memory/i);
   assert.match(policy.guard(exec('subagent')), /memory/i);
-  assert.equal(policy.guard(exec('bash', { command: `rm -f ${dir}/new.md` })), undefined);
+  // The shell tokenizer refuses backslashes, so Windows paths are spelled with `/`.
+  assert.equal(policy.guard(exec('bash', { command: `rm -f ${dir.split(sep).join('/')}/new.md` })), undefined);
   policy.release('child'); assert.equal(policy.guard(exec('subagent')), undefined);
   const budget = createStepBudget(); budget.set('child', 2);
   assert.deepEqual([budget.onPreStep('child'), budget.onPreStep('child'), budget.onPreStep('child')], [true, true, false]);

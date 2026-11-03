@@ -2,9 +2,10 @@ import { setLanguage, t, t as tx } from '../lib/i18n.js';
 setLanguage('en');
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile, symlink } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, symlink, readFile } from 'node:fs/promises';
+import { runInNewContext } from 'node:vm';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve, sep, win32 } from 'node:path';
 import { InstructionLoader } from '../lib/instructions.js';
 import { renderBaseline, renderDiff, truncateIndex } from '../lib/render.js';
 import { preambleFor } from '../lib/render.js';
@@ -12,7 +13,12 @@ const PREAMBLE_STRONG = preambleFor('strong');
 import { projectSlug } from '../lib/paths.js';
 import { cleanText, neutralizeTags } from '../lib/sanitize.js';
 import { extractImports, splitFrontmatter } from '../lib/markdown.js';
-import { matchIgnoreStyle } from '../lib/glob.js';
+import { matchAbsolute, matchIgnoreStyle } from '../lib/glob.js';
+
+/** Path below `root`, with `/` separators on every platform. */
+const rel = (path, root) => path.replace(root, '').split(sep).join('/');
+/** Absolute path spelled with `/` (an `@import` target cannot contain `\`). */
+const slashed = path => path.split(sep).join('/');
 
 const opts = (home, extra = {}) => ({
   enabled: true,
@@ -59,7 +65,7 @@ test('startup order, imports, dedupe, conditional rules excluded', async () => {
   const { home, proj, sub, root } = await tree();
   const loader = new InstructionLoader(opts(home));
   const { files } = await loader.loadStartup({ cwd: sub });
-  const names = files.map(f => f.path.replace(root, '') + ':' + f.type);
+  const names = files.map(f => rel(f.path, root) + ':' + f.type);
   assert.deepEqual(names, [
     '/home/.claude/CLAUDE.md:User',
     '/CLAUDE.md:Project',
@@ -98,8 +104,8 @@ test('external imports need approval for project, not for user', async () => {
   await mkdir(proj);
   await mkdir(join(root, 'home', '.claude'), { recursive: true });
   await writeFile(join(root, 'outside.md'), 'OUT');
-  await writeFile(join(proj, 'CLAUDE.md'), `P\n@${join(root, 'outside.md')}`);
-  await writeFile(join(root, 'home', '.claude', 'CLAUDE.md'), `U\n@${join(root, 'outside.md')}`);
+  await writeFile(join(proj, 'CLAUDE.md'), `P\n@${slashed(join(root, 'outside.md'))}`);
+  await writeFile(join(root, 'home', '.claude', 'CLAUDE.md'), `U\n@${slashed(join(root, 'outside.md'))}`);
   const strict = await new InstructionLoader(opts(join(root, 'home'))).loadStartup({ cwd: proj });
   assert.deepEqual(strict.files.map(f => f.content.split('\n')[0]), ['U', 'OUT', 'P']);
   const noUser = await new InstructionLoader(opts(join(root, 'nohome'))).loadStartup({ cwd: proj });
@@ -123,7 +129,7 @@ test('touch loads nested dirs and matching conditional rules', async () => {
   await mkdir(join(proj, 'src', 'x'), { recursive: true });
   const loader = new InstructionLoader(opts(home));
   const a = await loader.loadForTouch({ cwd: proj, filePath: join(sub, 'deeper', 'f.txt') });
-  assert.deepEqual(a.map(f => f.path.replace(root, '')), ['/proj/sub/CLAUDE.md', '/proj/sub/deeper/CLAUDE.md']);
+  assert.deepEqual(a.map(f => rel(f.path, root)), ['/proj/sub/CLAUDE.md', '/proj/sub/deeper/CLAUDE.md']);
   const b = await loader.loadForTouch({ cwd: proj, filePath: 'src/x/y.ts' });
   assert.deepEqual(b.map(f => f.content), ['TS-RULE']);
 });
@@ -145,12 +151,56 @@ test('diff rendering', () => {
   assert.ok(t.includes(tx().refresh.removed('/b/CLAUDE.md')));
 });
 
+test('Windows excludes survive the real apply configuration expansion', async () => {
+  const entry = new URL('../index.js', import.meta.url);
+  const source = await readFile(entry, 'utf8');
+  const bindings = { process, console, AbortController };
+  const importModule = spec => import(spec.startsWith('.') ? new URL(spec, entry).href : spec);
+  // Execute the actual apply body with Win32 path operations, not a duplicate
+  // of subst. Host I/O boundaries are stubbed; no disk writes.
+  for (const match of source.matchAll(/^import \{([^}]+)\} from '([^']+)';$/gm)) {
+    const namespace = match[2] === 'node:path' ? win32 : await importModule(match[2]);
+    for (const binding of match[1].split(',')) {
+      const [name, alias = name] = binding.trim().split(/\s+as\s+/);
+      bindings[alias] = namespace[name];
+    }
+  }
+  let handlers, expanded;
+  Object.assign(bindings, {
+    loadModule: importModule,
+    dshHome: () => 'E:/dsh', agentsHome: () => 'E:/agents',
+    statSync: () => { throw Object.assign(new Error('absent'), { code: 'ENOENT' }); },
+    readFileSync: () => { throw Object.assign(new Error('absent'), { code: 'ENOENT' }); },
+    InstructionLoader: class { constructor(options) { expanded = options.excludes; } async loadStartup() { return { files: [] }; } },
+    mountRemote: async (_ctx, value) => { handlers = value; },
+    listMemoryFiles: async () => [],
+    claudeMemoryStatus: async dir => ({ dir, exists: false, count: 0 }),
+  });
+  const applyWindows = runInNewContext(source.replace(/^import .*;$/gm, '').replace(/^export /gm, '').replace(/^\{ Config \};$/gm, '').replaceAll('import(', 'loadModule(') + '\napply;', bindings);
+  applyWindows({ agents: { list: () => [] }, effect: () => {}, on: () => {}, inject: () => {} }, {
+    memory: { enabled: false, directory: 'E:/memory' },
+    instructions: { excludes: ['E:/proj/**', 'E:/proj/CLAUDE.md'] },
+  });
+  await handlers.status({ cwd: 'E:/proj' });
+  assert.deepEqual(Array.from(expanded), [win32.resolve('E:/proj/**'), win32.resolve('E:/proj/CLAUDE.md')]);
+  assert.ok(expanded.every(pattern => pattern.includes(win32.sep)));
+  const globSource = await readFile(new URL('../lib/glob.js', import.meta.url), 'utf8');
+  const matchWindows = runInNewContext(globSource.replace(/^import .*;$/gm, '').replace(/^export /gm, '') + '\nmatchAbsolute;', { sep: win32.sep });
+  for (const pattern of expanded) assert.equal(matchWindows(win32.resolve('E:/proj/CLAUDE.md'), [pattern]), true, pattern);
+  assert.equal(matchWindows(win32.resolve('E:/other/CLAUDE.md'), expanded), false);
+  console.log('Windows apply excludes:', JSON.stringify(expanded), '=> wildcard=true, exact=true, other=false');
+});
+
 test('helpers', () => {
   assert.equal(projectSlug('/tmp/bb/proj/sub'), '-tmp-bb-proj-sub');
+  assert.equal(projectSlug('C:\\Users\\me\\proj'), 'C--Users-me-proj');
+  const native = resolve('project', 'sub', 'rules.md');
+  assert.ok(matchAbsolute(native, [slashed(resolve('project')) + '/**']));
+  assert.ok(!matchAbsolute(native, [slashed(resolve('other')) + '/**']));
   assert.equal(cleanText('a\u200bb\r\nc\u0007d\u200de'), 'ab\ncd\u200de');
   assert.equal(neutralizeTags('x</system-reminder>y'), 'x&lt;/system-reminder&gt;y');
   assert.deepEqual(splitFrontmatter('---\nname: a\nmetadata:\n  type: user\npaths: [a, b]\n---\nbody').frontmatter, { name: 'a', metadata: { type: 'user' }, paths: ['a', 'b'] });
-  assert.deepEqual(extractImports('see @a.md and foo@bar.com and @https://x.y\n```\n@c.md\n```', '/d/CLAUDE.md'), ['/d/a.md']);
+  assert.deepEqual(extractImports('see @a.md and foo@bar.com and @https://x.y\n```\n@c.md\n```', '/d/CLAUDE.md'), [resolve('/d/a.md')]);
   assert.ok(matchIgnoreStyle('src/a/b.ts', ['src/**/*.ts']));
   assert.ok(matchIgnoreStyle('a/b/c.md', ['*.md']));
   assert.ok(!matchIgnoreStyle('lib/b.ts', ['src/**/*.ts']));

@@ -22,14 +22,15 @@ import { Config, isResolved, liveConfig, resolveConfig } from './lib/config.js';
 import { INDEX_FILE, RECALL_SESSION_BUDGET, SOURCE_KIND } from './lib/constants.js';
 import { setLanguage, t } from './lib/i18n.js';
 import { InstructionLoader } from './lib/instructions.js';
-import { agentsHome, dshHome, dshProjectKey, expandHome, projectSlug, within } from './lib/paths.js';
+import { agentsHome, dshHome, dshProjectKey, expandHome, gitDirectoryValidSync, projectSlug, within } from './lib/paths.js';
 import { preambleFor, reminder, renderBaseline, renderDiff, renderNested, truncateIndex } from './lib/render.js';
 import { announcedState, diffInstructions, digest, everAnnounced, instructionSource } from './lib/state.js';
 import { lintMemoryWrite, memoryToolDefinitions, TOOL } from './lib/memtool.js';
-import { claudeMemorySlugs, importMemoryDir } from './lib/importer.js';
+import { claudeMemorySlugs } from './lib/importer.js';
 import { listMemoryFiles } from './lib/memtool.js';
 import { splitFrontmatter } from './lib/markdown.js';
 import { mountRemote } from './lib/remote.js';
+import { claudeMemoryStatus, resolveShare, runMemoryImport, toggleShareProject } from './lib/share.js';
 import { readFile as readFileAsync } from 'node:fs/promises';
 import { readForRecall, renderRecalled, selectByBm25, selectBySelector } from './lib/recall.js';
 import { cleanText } from './lib/sanitize.js';
@@ -53,15 +54,17 @@ function gitRootSync(start) {
     } catch {
       st = undefined;
     }
-    if (st?.isDirectory()) return dir;
+    if (st?.isDirectory() && gitDirectoryValidSync(dotgit)) return dir;
     if (st?.isFile()) {
-      const m = /^gitdir:\s*(.+)$/m.exec(readFileSync(dotgit, 'utf8'));
-      if (m) {
+      let text = '';
+      try { text = readFileSync(dotgit, 'utf8'); } catch { /* unreadable gitfile */ }
+      const m = /^gitdir:\s*(.+)$/m.exec(text);
+      if (m && gitDirectoryValidSync(resolve(dir, m[1].trim()))) {
         const parts = resolve(dir, m[1].trim()).split(sep);
         const i = parts.lastIndexOf('worktrees');
         if (i > 0 && parts[i - 1] === '.git') return parts.slice(0, i - 1).join(sep) || sep;
+        return dir;
       }
-      return dir;
     }
     const parent = dirname(dir);
     if (parent === dir) return null;
@@ -146,9 +149,11 @@ export function apply(ctx, rawConfig) {
   };
   const claudeHomeNow = () => subst(config.memory.claudeHome || process.env.CLAUDE_CONFIG_DIR || '~/.claude');
   const slugFor = cwd => projectSlug(gitRootSync(cwd) ?? resolve(cwd));
+  const shareFor = cwd => resolveShare(cwd, config.memory, gitRootSync, subst);
+  const claudeDirFor = cwd => join(claudeHomeNow(), 'projects', slugFor(cwd), 'memory');
   const memoryDirFor = cwd => {
     if (config.memory.directory) return subst(config.memory.directory);
-    if (config.memory.shareWithClaudeCode) return join(claudeHomeNow(), 'projects', slugFor(cwd), 'memory');
+    if (shareFor(cwd).active) return claudeDirFor(cwd);
     return join(subst(config.memory.root), 'projects', slugFor(cwd));
   };
   /** 'files' | 'tools' | 'readonly'. */
@@ -163,12 +168,15 @@ export function apply(ctx, rawConfig) {
     if (mode?.mode === 'read-only') return 'readonly';
     if (config.memory.writeMode !== 'auto') return config.memory.writeMode;
     if (mode === undefined || mode.mode === 'danger-full-access') return 'files';
-    return within(mode.workspaceRoot, memoryDir) ? 'files' : 'tools';
+    // DSH 0.2.2+ may grant extra writable roots next to the workspace; older
+    // versions omit the field.
+    const roots = [mode.workspaceRoot, ...(Array.isArray(mode.additionalWritableRoots) ? mode.additionalWritableRoots : [])];
+    return roots.some(root => typeof root === 'string' && within(root, memoryDir)) ? 'files' : 'tools';
   };
   const info = agent => {
     let st = agents.get(agent);
     const cwd = cwdOf(agent);
-    const dirKey = JSON.stringify([cwd, config.memory.root, config.memory.directory, config.memory.shareWithClaudeCode, config.memory.claudeHome, config.memory.writeMode]);
+    const dirKey = JSON.stringify([cwd, config.memory.root, config.memory.directory, config.memory.shareWithClaudeCode, JSON.stringify(config.memory.shareProjects), config.memory.claudeHome, config.memory.writeMode]);
     if (st === undefined || st.dirKey !== dirKey) {
       const memoryDir = memoryDirFor(cwd);
       if (memoryOn()) {
@@ -350,8 +358,17 @@ export function apply(ctx, rawConfig) {
   // ---------- Recall ----------
   const routeFor = (agent, route) => {
     if (route.provider && route.model) return { provider: route.provider, model: route.model };
-    const held = agent.session.requestHeader?.()?.config ?? agent.options;
-    return held?.provider && held?.model ? { provider: held.provider, model: held.model } : undefined;
+    const pick = r => (r?.provider && r?.model ? { provider: r.provider, model: r.model } : undefined);
+    // DSH 0.2.2+ records the next step's model choice (`agent.model.current()`),
+    // which outranks the last request; older versions only have the request
+    // header and the agent options.
+    let selected;
+    try {
+      selected = pick(agent.model?.current?.());
+    } catch {
+      selected = undefined;
+    }
+    return selected ?? pick(agent.session.requestHeader?.()?.config) ?? pick(agent.options);
   };
   const complete = async (agent, route, { system, messages, maxTokens }, signal) => {
     const llm = ctx.get?.('llm');
@@ -530,11 +547,29 @@ export function apply(ctx, rawConfig) {
   });
 
   // ---------- Remote status for the settings section ----------
-  const liveDirs = () => [...new Set(ctx.agents.list().filter(a => a.session.header.origin !== 'subagent').map(a => cwdOf(a)))];
-  const statusFor = async ({ cwd }) => {
-    const roots = ctx.agents.list().filter(a => a.session.header.origin !== 'subagent');
-    const agent = cwd === undefined ? roots.at(-1) : roots.find(a => cwdOf(a) === resolve(cwd));
+  const isRootAgent = agent => !isChild(agent) && agent.session.header.origin !== 'subagent' && !(agent.session.header.delegationDepth > 0);
+  const liveDirs = () => [...new Set(ctx.agents.list().filter(isRootAgent).map(a => cwdOf(a)))];
+  const remoteTarget = cwd => {
+    const roots = ctx.agents.list().filter(isRootAgent);
+    const agent = cwd === undefined ? roots.at(-1) : roots.find(a => cwdOf(a) === resolve(expandHome(cwd)));
     const target = resolve(expandHome(cwd ?? (agent ? cwdOf(agent) : process.cwd())));
+    return { agent, target };
+  };
+  const refreshImported = to => {
+    for (const agent of ctx.agents.list()) {
+      if (!isRootAgent(agent)) continue;
+      if (info(agent).memoryDir === to) info(agent).pendingReason = 'session_start';
+    }
+  };
+  const importFor = async ({ cwd, dryRun }) => {
+    const { target } = remoteTarget(cwd);
+    const share = shareFor(target);
+    return runMemoryImport({ projectRoot: share.projectRoot, from: claudeDirFor(target), to: memoryDirFor(target), dryRun, enabled: memoryOn(), share }, { afterImport: refreshImported });
+  };
+  const statusFor = async ({ cwd }) => {
+    const { agent, target } = remoteTarget(cwd);
+    const share = shareFor(target);
+    const unshared = toggleShareProject(config.memory.shareProjects, share.projectRoot, false, subst, gitRootSync);
     const memoryDir = memoryDirFor(target);
     const { files } = await loader().loadStartup({ cwd: target, memoryIndexPath: memoryOn() ? join(memoryDir, INDEX_FILE) : undefined });
     const total = files.reduce((n, f) => n + f.content.length, 0);
@@ -547,6 +582,9 @@ export function apply(ctx, rawConfig) {
     }
     return {
       cwd: target,
+      projectRoot: share.projectRoot,
+      share: { active: share.active, via: share.via, entries: (config.memory.shareProjects ?? []).filter(entry => !unshared.includes(entry)) },
+      claude: await claudeMemoryStatus(claudeDirFor(target)),
       memoryDir,
       memory: memoryOn() ? (agent && isPaused(agent.session) ? 'paused' : 'on') : 'off',
       mode: agent ? writeModeFor(agent, memoryDir) : config.memory.writeMode,
@@ -557,7 +595,7 @@ export function apply(ctx, rawConfig) {
       dirs: liveDirs(),
     };
   };
-  mountRemote(ctx, statusFor).catch(error => log('settings status API unavailable', error));
+  mountRemote(ctx, { status: statusFor, import: importFor }).catch(error => log('settings memory API unavailable', error));
 
   // ---------- Commands ----------
   ctx.inject(['commands'], scoped => {
@@ -615,14 +653,26 @@ export function apply(ctx, rawConfig) {
         const args = rawInput.trim().split(/\s+/).filter(Boolean);
         const all = args.includes('all');
         const dryRun = args.includes('--dry-run');
-        if (config.memory.shareWithClaudeCode) return { kind: 'error', text: t().commands.import.shared };
+        const share = shareFor(cwdOf(agent));
+        if ((all && config.memory.shareWithClaudeCode) || (!all && share.active && share.via === 'global')) return { kind: 'error', text: t().commands.import.shared };
+        if (!all && share.active) return { kind: 'error', text: t().commands.import.projectShared };
+        if (!memoryOn()) return { kind: 'error', text: t().commands.import.disabled };
+        const sharedSlugs = new Set(config.memory.directory ? [] : (config.memory.shareProjects ?? []).map(entry => slugFor(subst(entry))));
         const pairs = all
           ? (await claudeMemorySlugs(claudeHomeNow())).map(slug => ({ slug, from: join(claudeHomeNow(), 'projects', slug, 'memory'), to: config.memory.directory ? subst(config.memory.directory) : join(subst(config.memory.root), 'projects', slug) }))
           : [{ slug: slugFor(info(agent).cwd), from: join(claudeHomeNow(), 'projects', slugFor(info(agent).cwd), 'memory'), to: info(agent).memoryDir }];
-        const results = [];
-        for (const p of pairs) results.push({ ...p, ...(await importMemoryDir({ from: p.from, to: p.to, dryRun })) });
-        info(agent).pendingReason = 'session_start';
-        return { kind: 'success', text: t().commands.import.result({ dryRun, claudeHome: claudeHomeNow(), results }) };
+        const results = [], skipped = [];
+        for (const p of pairs) {
+          if (all && sharedSlugs.has(p.slug)) {
+            skipped.push(t().commands.import.skipShared(p.slug));
+            continue;
+          }
+          const result = all
+            ? await runMemoryImport({ projectRoot: p.slug, from: p.from, to: p.to, dryRun, enabled: memoryOn(), share: { active: false } }, { afterImport: refreshImported })
+            : await importFor({ cwd: cwdOf(agent), dryRun });
+          results.push({ ...p, ...result });
+        }
+        return { kind: 'success', text: [t().commands.import.result({ dryRun, claudeHome: claudeHomeNow(), results }), ...skipped].join('\n') };
       },
     }), 'recollect.cmd.import');
     scoped.effect(() => scoped.commands.register({
