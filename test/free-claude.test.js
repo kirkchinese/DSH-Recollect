@@ -7,7 +7,7 @@ import { apply as applyMemory } from '../index.js';
 import { Config as MemoryConfig } from '../lib/config.js';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, sep } from 'node:path';
 
 const DSH_IDENTITY = 'You are an AI agent powered by DeepSeek Harness.';
 const human = () => Object.freeze({ role: 'user', source: { kind: 'user' }, content: Object.freeze([{ type: 'text', text: 'hello' }]) });
@@ -441,7 +441,7 @@ test('memory guidance follows composed presets and live auto/full/lean overrides
   };
   applyMemory(ctx, config);
   t.after(async () => { for (const dispose of disposers.reverse()) await dispose?.(); });
-  const opts = { title: 'persistent memory', dir: join(home, 'memory') + '/', mode: 'files', readOnly: false, extraGuidelines: [] };
+  const opts = { title: 'persistent memory', dir: join(home, 'memory') + sep, mode: 'files', readOnly: false, extraGuidelines: [] };
   const guidance = () => sections.get('recollect:guidance').text();
   assert.equal(guidance(), text().guidance(opts));
   agent.ctx.preset = 'free-claude';

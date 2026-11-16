@@ -5,7 +5,7 @@ import fs, { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSy
 import { syncBuiltinESMExports } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createBudgetStore } from '../lib/budget-store.js';
 
 const STORE = fileURLToPath(new URL('../lib/budget-store.js', import.meta.url));
@@ -51,7 +51,7 @@ test('concurrent processes agree on one budget per session and lose no records',
   const child = i => new Promise((resolve, reject) => {
     const code = `
       import { existsSync } from 'node:fs';
-      import { createBudgetStore } from ${JSON.stringify(STORE)};
+      import { createBudgetStore } from ${JSON.stringify(pathToFileURL(STORE).href)};
       while (!existsSync(${JSON.stringify(go)})) await new Promise(r => setTimeout(r, 2));
       const store = createBudgetStore(${JSON.stringify(dir)});
       const shared = store.resolve('shared', ${1000 + i});
