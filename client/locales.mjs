@@ -4,6 +4,19 @@
 // identical — client/build.mjs inlines both objects into lib/client.js.
 
 export const zh = {
+  "freeClaude.sectionLabel": "Free Claude",
+  "freeClaude.summary": "独立编写的非官方编程预设与 token 节奏提示",
+  "freeClaude.disclaimer": "Free Claude 是独立编写的非官方预设，与 Anthropic 无关。它不会更换模型，也不提供 Claude 服务。保存即生效；预算只影响首次使用的新会话，已有会话沿用已记录额度。",
+  "s.freeClaude": "Free Claude",
+  "d.freeClaude": "仅对选中的 Free Claude 预设生效；其他插件的提示保持不变。",
+  "f.enabled": "启用 Free Claude",
+  "h.enabled": "默认开。替换预设身份并加入工作原则。",
+  "f.toolGuidance": "工具指导",
+  "h.toolGuidance": "默认开。加入文件、Git、技能、委派及后台工作的简明指导。",
+  "f.totalTokens": "token 提醒",
+  "h.totalTokens": "默认开。system 保持固定预算；用户输入和工具续步追加剩余额度提醒。",
+  "f.totalTokensBudget": "token 预算",
+  "h.totalTokensBudget": "默认 15000000。每会话首次使用时锁定并在恢复或重启后保留；普通用户输入重新开始倒计时。最多保留最近 5000 个会话的记录，被淘汰的极老会话按当前设置重新锁定。",
   "status.share.label": "与 Claude Code 共用本项目",
   "status.share.global": "已在设置中对所有项目开启",
   "status.share.directory": "已设置固定记忆目录",
@@ -143,6 +156,19 @@ export const zh = {
 };
 
 export const en = {
+  "freeClaude.sectionLabel": "Free Claude",
+  "freeClaude.summary": "Independently authored unofficial coding preset and token pacing",
+  "freeClaude.disclaimer": "Free Claude is an independently authored, unofficial preset, not affiliated with Anthropic. It does not change your model or provide Claude services. Changes apply on save; budget changes affect sessions on first use only, while existing sessions keep their recorded budget.",
+  "s.freeClaude": "Free Claude",
+  "d.freeClaude": "Applies only to the selected Free Claude preset; other plugins keep their guidance.",
+  "f.enabled": "Enable Free Claude",
+  "h.enabled": "On by default. Replaces the preset identity and adds working principles.",
+  "f.toolGuidance": "Tool guidance",
+  "h.toolGuidance": "On by default. Concise guidance for files, Git, skills, delegation and background work.",
+  "f.totalTokens": "Token reminders",
+  "h.totalTokens": "On by default. Keeps a fixed system budget and appends remaining-budget reminders on user input and tool continuations.",
+  "f.totalTokensBudget": "Token budget",
+  "h.totalTokensBudget": "Default 15000000. Locked on first use per session, restored on resume or restart; ordinary user input starts a fresh countdown. Records keep the most recent 5000 sessions; very old evicted sessions lock the current setting again.",
   "status.share.label": "Share this project with Claude Code",
   "status.share.global": "Enabled for all projects in settings",
   "status.share.directory": "A fixed memory directory is configured",

@@ -31,16 +31,16 @@ In Claude Code, the memory-writing guidance depends on the model. Models outside
 
 | DSH version | Recollect version |
 | --- | --- |
-| `0.2.0-rc.2` and later (including the official Desktop; tested with `0.2.1-rc.2` and `0.2.1-rc.5`) | `0.5.0` |
+| `0.2.0-rc.2` and later (including the official Desktop; tested with `0.2.1-rc.2`, `0.2.1-rc.5` and `0.2.2-rc.3`) | `0.6.0` |
 
 **Official Desktop:** on the Plugins page, install the npm package `@kirkchinese/dsh-recollect`, or enter `https://github.com/kirkchinese/DSH-Recollect.git` as the Git address, then restart when prompted.
 
 **CLI and Web:**
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-recollect@0.5.0
+dsh plugin --profile web add @kirkchinese/dsh-recollect@0.6.0
 # or a release tag from the repository
-dsh plugin --profile web add "git+https://github.com/kirkchinese/DSH-Recollect.git#v0.5.0"
+dsh plugin --profile web add "git+https://github.com/kirkchinese/DSH-Recollect.git#v0.6.0"
 ```
 
 Restart DSH and reload the page. New sessions use Recollect. It takes over instruction-file loading and filters out what DSH's built-in AGENTS.md loader injects, so no file is loaded twice.
@@ -50,7 +50,7 @@ Restart DSH and reload the page. New sessions use Recollect. It takes over instr
 Install the npm package from PowerShell (the official Desktop also accepts this npm package on its Plugins page):
 
 ```powershell
-dsh plugin --profile web add "@kirkchinese/dsh-recollect@0.5.0"
+dsh plugin --profile web add "@kirkchinese/dsh-recollect@0.6.0"
 ```
 
 Restart DSH and reload the page. Known platform differences:
@@ -80,6 +80,17 @@ Restart DSH and reload the page. Known platform differences:
 Memories live in `~/.dsh/memory/projects/<slug of the git root>/`, shared by all subdirectories and worktrees of a repository.
 
 **Writes adapt to the sandbox.** When the sandbox allows writing the memory directory, the model uses the built-in `write`/`edit`. When it does not (for example `workspace-write`, where the directory is outside the workspace), Recollect mounts `memory_list/read/write/edit/delete` and switches the guidance to match. These tools write only `.md` files inside the memory directory and refuse secrets. Nothing is written in a read-only sandbox.
+
+## The Free Claude preset
+
+**Free Claude is an unofficial, independently authored preset, unaffiliated with Anthropic. It does not change your model or provide Claude service.** After installing 0.6.0, choose **Free Claude** before the first message of a new session. It builds on DSH's standard preset, replacing the identity and adding independently written working principles and tool guidance while preserving other plugins' sections. The preset copies the host's current standard component list at runtime, so it follows DSH when components are added or removed.
+
+- **Working principles and tool practice**: read before editing, stay within the request, confirm risky actions, report verification honestly, and use files, Git, skills and subagents within clear boundaries. toolGuidance can be disabled separately.
+- **Token budget**: the system prompt carries a fixed budget (15000000 by default). Each user message starts a fresh countdown and tool continuations append the remainder. Only successful compaction adds discarded context; tool-result pruning is not counted again. totalTokens disables the whole feature.
+- **Lean memory guidance**: with memory.guidance set to auto, Free Claude uses leanGuidance while other presets keep the full guidance. Adjust memory.leanPresets, or set memory.guidance to full / lean explicitly.
+- **Separate settings section**: use **Settings → Free Claude**, or the free-claude row on the Plugins page. No request-parameter rewriting, Claude Code request emulation, or ReportFindings is included.
+
+The first budget used by a session is recorded in ~/.dsh/recollect/budgets/<session id>.json and restored on resume or restart; budget changes affect only new sessions. The store keeps the most recent 5000 sessions; older evicted sessions lock the current setting again. Corrupt or unreadable records need manual repair or removal and are never overwritten; the current candidate budget is used as a fallback, without guaranteeing the same budget across processes or restarts. Writes rely on hard links: NTFS supports them; on FAT/exFAT and some network drives the plugin logs the failure and uses the current budget without guaranteeing restoration after restart.
 
 ## Settings page
 
@@ -113,6 +124,8 @@ You can also edit the profile's `cordis.patch.yml` by hand. A hand-written overr
     memory:
       shareWithClaudeCode: false  # share all projects with Claude Code
       shareProjects: []          # absolute project directories matched by Git root
+      guidance: auto             # auto: lean guidance for Free Claude; or fixed full / lean
+      leanPresets: [free-claude]
       directory: ""              # fixed directory overrides all sharing settings
       claudeHome: ""             # empty: $CLAUDE_CONFIG_DIR or ~/.claude
     recall: { enabled: true, method: bm25 }

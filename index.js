@@ -5,9 +5,8 @@
  *   `@import`, rules and conditional rules, injected as one durable
  *   `<system-reminder>` before the first request, re-announced as a diff on
  *   resume / pause toggles and in full after compaction hides it.
- * - Persistent memory: complete writing guidance in the system prompt (no
- *   model-dependent shortening) and the MEMORY.md index in the instruction
- *   block. Writes go through the built-in write/edit tools when the sandbox
+ * - Persistent memory: full or preset-selected lean guidance in the system
+ *   prompt and the MEMORY.md index in the instruction block. Writes go through the built-in write/edit tools when the sandbox
  *   allows the memory directory, otherwise through dedicated memory tools.
  * - Post-write lint, nested instruction discovery, optional recall,
  *   background extraction, dream consolidation and agent memory.
@@ -222,10 +221,16 @@ export function apply(ctx, rawConfig) {
   };
 
   // ---------- System prompt sections (scoped per agent) ----------
+  const guidanceFor = agent => {
+    let preset = agent.session.header.agentPreset ?? '';
+    try { preset = ctx.get?.('agentPresets')?.composedPreset(agent.ctx) ?? preset; } catch { /* older host */ }
+    const lean = config.memory.guidance === 'lean' || (config.memory.guidance === 'auto' && config.memory.leanPresets.includes(preset));
+    return lean ? t().leanGuidance : t().guidance;
+  };
   const guidanceText = agent => {
     if (!memoryActive(agent)) return '';
     const st = info(agent);
-    return t().guidance({ title: 'persistent memory', dir: `${st.memoryDir}${sep}`, mode: st.mode === 'tools' ? 'tools' : 'files', readOnly: st.mode === 'readonly', extraGuidelines: [] });
+    return guidanceFor(agent)({ title: 'persistent memory', dir: `${st.memoryDir}${sep}`, mode: st.mode === 'tools' ? 'tools' : 'files', readOnly: st.mode === 'readonly', extraGuidelines: [] });
   };
   const agentMemoryText = agent => {
     const scope = config.agentMemory[agent.session.header.agentPreset ?? ''];
@@ -258,7 +263,7 @@ export function apply(ctx, rawConfig) {
     // agent memory the sandbox keeps from write/edit is offered read-only.
     const mode = writeModeFor(agent, dir);
     const tx = t();
-    const head = tx.guidance({ title: 'Persistent Agent Memory', dir: `${dir}${sep}`, mode: 'files', readOnly: refused || mode !== 'files', extraGuidelines: [tx.agent.scope[scope]] });
+    const head = guidanceFor(agent)({ title: 'Persistent Agent Memory', dir: `${dir}${sep}`, mode: 'files', readOnly: refused || mode !== 'files', extraGuidelines: [tx.agent.scope[scope]] });
     const tail = refused ? tx.agent.indexRefused : index ? index : tx.agent.indexEmpty;
     return `${head}\n\n${tx.agent.indexHeading}\n\n${tail}`;
   };
