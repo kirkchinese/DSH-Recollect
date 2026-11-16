@@ -31,20 +31,20 @@ Recollect 是 [DeepSeek Harness（DSH）](https://github.com/deepseek-ai/deepsee
 
 | DSH 版本 | Recollect 版本 |
 | --- | --- |
-| `0.2.0-rc.2` 及以后（含官方桌面版；已测 `0.2.1-rc.2`、`0.2.1-rc.5`） | `0.5.0` |
+| `0.2.0-rc.2` 及以后（含官方桌面版；已测 `0.2.1-rc.2`、`0.2.1-rc.5`、`0.2.2-rc.3`） | `0.6.0` |
 
 **官方桌面版：** 在插件页安装 npm 包 `@kirkchinese/dsh-recollect`，或在 Git 地址一栏填写 `https://github.com/kirkchinese/DSH-Recollect.git`，然后按提示重启。
 
 **命令行与 Web：**
 
 ```sh
-dsh plugin --profile web add @kirkchinese/dsh-recollect@0.5.0
+dsh plugin --profile web add @kirkchinese/dsh-recollect@0.6.0
 ```
 
 也可以从仓库安装某个发布标签：
 
 ```sh
-dsh plugin --profile web add "git+https://github.com/kirkchinese/DSH-Recollect.git#v0.5.0"
+dsh plugin --profile web add "git+https://github.com/kirkchinese/DSH-Recollect.git#v0.6.0"
 ```
 
 安装后重启 DSH 并刷新页面，新会话生效。Recollect 会接管指令文件的加载，并自动过滤 DSH 自带的 AGENTS.md 加载器注入的内容，避免同一份文件被读两次。
@@ -54,7 +54,7 @@ dsh plugin --profile web add "git+https://github.com/kirkchinese/DSH-Recollect.g
 在 PowerShell 中通过 npm 包安装（官方桌面版也可以在插件页填写同一个 npm 包名）：
 
 ```powershell
-dsh plugin --profile web add "@kirkchinese/dsh-recollect@0.5.0"
+dsh plugin --profile web add "@kirkchinese/dsh-recollect@0.6.0"
 ```
 
 安装后重启 DSH 并刷新页面。已知的平台差异：
@@ -84,6 +84,17 @@ dsh plugin --profile web add "@kirkchinese/dsh-recollect@0.5.0"
 记忆存放在 `~/.dsh/memory/projects/<git 根目录对应的 slug>/`，同一仓库的不同子目录和 worktree 共用一份。
 
 **写入方式会自动适配沙箱。** 沙箱允许写记忆目录时，模型直接用内置的 `write`/`edit`；在 `workspace-write` 等模式下记忆目录位于工作区之外，Recollect 会挂载专用工具 `memory_list/read/write/edit/delete`，指导文本也随之切换。这些工具只能写记忆目录里的 `.md` 文件，并会拒绝写入密钥。只读沙箱下不写记忆。
+
+## Free Claude 预设
+
+**Free Claude 是独立编写的非官方预设，与 Anthropic 无关；不更换模型，也不提供 Claude 服务。** 安装 0.6.0 后，在新建会话的第一条消息前选择「Free Claude」。它基于 DSH standard 预设，并只替换身份句、加入独立编写的工作原则和工具指导；其他插件的段落保持不变。预设在运行时复制宿主当前的 standard 组件清单，DSH 增删组件时自动跟上。
+
+- **工作原则与工具指导**：强调先读后改、守住任务范围、危险操作先确认、如实报告验证结果，以及文件、Git、技能和子代理的使用边界。toolGuidance 可单独关闭。
+- **token 预算**：system 中固定写预算（默认 15000000），用户消息重新开始倒计时，工具续步追加余额提醒。只有成功压缩才计入被压缩的上下文，工具结果修剪不会重复扣减。totalTokens 可关闭整个功能。
+- **精简记忆指导**：memory.guidance 为 auto 时，Free Claude 使用 leanGuidance，其他预设仍用完整指导；可用 memory.leanPresets 调整预设列表，或把 memory.guidance 固定为 full / lean。
+- **独立设置分区**：「设置」→「Free Claude」管理上述选项，也可在插件页的 free-claude 组件行配置。不包含请求参数改写、Claude Code 请求形态或 ReportFindings。
+
+每个会话第一次使用的预算记录在 ~/.dsh/recollect/budgets/<会话 id>.json，恢复会话或重启后沿用；修改预算只影响没有记录的新会话。最多保留最近 5000 个会话，淘汰的极老会话按当前配置重新锁定。损坏或无法解析的记录需要人工删除或修复，插件不会覆盖它；此时会临时采用当前候选预算，不保证不同进程或重启后的预算一致。记录写入依赖文件系统硬链接：NTFS 支持；FAT/exFAT、部分网络盘不支持时只记录日志并继续使用当前预算，但不保证重启后恢复。
 
 ## 设置页
 
@@ -117,6 +128,8 @@ dsh plugin --profile web add "@kirkchinese/dsh-recollect@0.5.0"
     memory:
       shareWithClaudeCode: false  # 所有项目共用 Claude Code 记忆
       shareProjects: []          # 按 Git 根目录匹配的绝对项目目录
+      guidance: auto             # auto：Free Claude 用精简指导；也可固定 full / lean
+      leanPresets: [free-claude]
       directory: ""              # 固定目录优先于全局和按项目共用
       claudeHome: ""             # 留空使用 $CLAUDE_CONFIG_DIR 或 ~/.claude
     recall:

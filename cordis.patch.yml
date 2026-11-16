@@ -5,3 +5,8 @@
 - insert:
     - id: recollect
       name: '@kirkchinese/dsh-recollect'
+    # One host instance follows composed presets, including live switches. It
+    # also registers the Free Claude preset at runtime as a live copy of the
+    # host's standard preset, so DSH component changes never break it.
+    - id: free-claude
+      name: '@kirkchinese/dsh-recollect/free-claude'

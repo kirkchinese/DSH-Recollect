@@ -44,3 +44,11 @@ export const FIELDS = [
 ];
 
 export const SECTIONS = ['memory', 'instructions', 'recall', 'extract', 'dream'];
+
+export const FREE_CLAUDE_ROW_ID = 'free-claude';
+export const FREE_CLAUDE_FIELDS = [
+  { section: 'freeClaude', path: 'enabled', kind: 'bool' },
+  { section: 'freeClaude', path: 'toolGuidance', kind: 'bool' },
+  { section: 'freeClaude', path: 'totalTokens', kind: 'bool' },
+  { section: 'freeClaude', path: 'totalTokensBudget', kind: 'number' },
+];

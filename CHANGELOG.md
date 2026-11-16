@@ -2,6 +2,18 @@
 
 All notable changes to Recollect. Versions are listed with the DSH host line they target.
 
+## 0.6.0 — 2026-11-16
+
+Targets the same open DSH range as 0.5.0 (>=0.2.0-rc.2); tested on 0.2.1-rc.5 and 0.2.2-rc.3.
+
+- The Free Claude preset is registered at runtime as a live copy of the host's own standard preset instead of a plugin list fixed in the bundle patch. A fixed copy broke on DSH 0.2.2, which removed `@deepseek-ai/dsh-tool-subagent-control/list-agents` (the preset showed "load failed"); the live copy follows every DSH version and the user's own edits to standard. `registerPreset` and `presetBase` control it; headless hosts without a preset registry skip it.
+
+- Add the unofficial **Free Claude** preset, independently authored in Chinese and English, with no affiliation to Anthropic. It builds on DSH standard, dynamically replaces identity, and adds working principles and optional tool guidance without duplicating host components.
+- Add fixed token-budget text and append-only pacing reminders after user messages and tool batches. User input reanchors the countdown, including when measurement is temporarily unavailable; only successful compaction rolls over the old context, never pruning. Turns terminate normally without synthetic follow-up work.
+- Record each session's first budget in per-session first-writer-wins files and restore it on resume/restart. At most 5000 recent records are retained with ongoing pruning; corrupt records fail open without being overwritten and need manual repair.
+- Add a lean memory-guidance variant selected per composed preset, a separate Free Claude settings section, and Plugins-page row configuration. The Memory section remains unchanged.
+- Include host lifecycle, compaction, multi-process persistence, locale, UI and cross-platform test coverage. The preset contains no provider request rewriting or Claude Code request emulation.
+
 ## 0.5.0 — 2026-11-03
 
 Supports DSH `0.2.0-rc.2` and later, including the official Desktop; CI covers `0.2.1-rc.2` and `0.2.1-rc.5`.

@@ -50,11 +50,11 @@
 
 		/** The settings page. Drafts are local; one save writes every change in one mutation. */
 		function SettingsPage(props) {
-			const { t, view, form } = props;
+			const { t, view, form, fields = FIELDS, freeClaude = false } = props;
 			const [drafts, setDrafts] = React.useState(() => new Map());
 			const [saving, setSaving] = React.useState(false);
 			const [failed, setFailed] = React.useState(false);
-			if (view === "summary") return t("summary");
+			if (view === "summary") return t(freeClaude ? "freeClaude.summary" : "summary");
 			const snapshot = form?.state;
 			const ready = snapshot?.status === "ready";
 			const value = snapshot?.value ?? {};
@@ -78,7 +78,7 @@
 					return next;
 				});
 			};
-			const states = FIELDS.map((f) => [f, fieldState(f)]);
+			const states = fields.map((f) => [f, fieldState(f)]);
 			const dirty = drafts.size > 0;
 			const invalid = states.some(([, s]) => s.invalid);
 			const shell = { available: ready, writable, dirty, invalid, saving, failed };
@@ -146,14 +146,14 @@
 				});
 			};
 			const sections = [];
-			for (const f of FIELDS) if (!sections.includes(f.section)) sections.push(f.section);
+			for (const f of fields) if (!sections.includes(f.section)) sections.push(f.section);
 			return h(P.SettingsForm, {
 				labels: { unavailable: t("unavailable"), readOnly: t("readOnly"), saveFailed: t("saveFailed"), save: t("save"), saving: t("saving") },
 				state: shell,
 				onSave: () => { void save(); },
 				onDiscard: discard,
 				children: [
-					h("p", { className: "ccm-note", key: "__note" }, t("restartNote")),
+					h("p", { className: "ccm-note", key: "__note" }, t(freeClaude ? "freeClaude.disclaimer" : "restartNote")),
 					...sections.map((section) => h("section", { className: "ccm-section", key: section },
 						h("h3", { className: "ccm-title" }, t("s." + section)),
 						h("p", { className: "ccm-intro" }, t("d." + section)),
@@ -311,6 +311,16 @@
 				h(SettingsPage, { t, view: "page", form }));
 		}
 
+		/** Separate row and section; the memory status/import panel is unchanged. */
+		function FreeClaudePage(props) {
+			return h(SettingsPage, { ...props, fields: FREE_CLAUDE_FIELDS, freeClaude: true });
+		}
+		function FreeClaudeSection({ t, configForm }) {
+			const snapshot = React.useSyncExternalStore(configForm.subscribe.bind(configForm), configForm.getSnapshot.bind(configForm));
+			const form = { state: snapshot, mutate: (ops, rev) => configForm.mutate(ops, rev) };
+			return h("div", { className: "ccm-root" }, h(FreeClaudePage, { t, view: "page", form }));
+		}
+
 		const inject = ["slots", "locale", "remote", "configForms"];
 		async function apply(ctx) {
 			injectCss();
@@ -321,6 +331,15 @@
 				key: PACKAGE + "#" + ROW_ID,
 				locale: NS,
 			}, SettingsPage)), PACKAGE + ": plugin page");
+			ctx.effect(() => ctx.slots.inject("plugins.row.config", () => ctx.slots.register({
+				name: "plugins.row.config", key: PACKAGE + "/free-claude#" + FREE_CLAUDE_ROW_ID, locale: NS,
+			}, FreeClaudePage)), PACKAGE + ": free claude plugin page");
+			const freeClaudeForm = ctx.configForms.get(FREE_CLAUDE_ROW_ID);
+			ctx.effect(() => ctx.slots.inject("settings.section", () => ctx.slots.register({
+				name: "settings.section", id: FREE_CLAUDE_ROW_ID, order: 47,
+				label: () => t("freeClaude.sectionLabel"), locale: NS,
+				inject: () => ({ configForm: freeClaudeForm }),
+			}, FreeClaudeSection)), PACKAGE + ": free claude settings section");
 			const configForm = ctx.configForms.get(ROW_ID);
 			const registerSection = (status, importMemory) => ctx.slots.register({
 				name: "settings.section",
