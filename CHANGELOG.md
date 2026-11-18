@@ -2,6 +2,10 @@
 
 All notable changes to Recollect. Versions are listed with the DSH host line they target.
 
+## Unreleased
+
+- Memory recall with `recall.method: selector`: a description taken from a file's first line (no frontmatter `description`) was cut at 120 UTF-16 code units and could end in half of an emoji or other non-BMP character. Strict JSON parsers (DeepSeek) then rejected every selector request with HTTP 400 and recall silently stopped. The cut now keeps surrogate pairs whole, and the selector request is made well-formed before it is sent.
+
 ## 0.6.0 — 2026-11-16
 
 Targets the same open DSH range as 0.5.0 (>=0.2.0-rc.2); tested on 0.2.1-rc.5 and 0.2.2-rc.3.

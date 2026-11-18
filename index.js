@@ -32,7 +32,7 @@ import { mountRemote } from './lib/remote.js';
 import { claudeMemoryStatus, resolveShare, runMemoryImport, toggleShareProject } from './lib/share.js';
 import { readFile as readFileAsync } from 'node:fs/promises';
 import { readForRecall, renderRecalled, selectByBm25, selectBySelector } from './lib/recall.js';
-import { cleanText } from './lib/sanitize.js';
+import { cleanText, clipUnits } from './lib/sanitize.js';
 
 export const name = 'recollect';
 export const inject = ['systemPrompt', 'tools', 'workingDirectory', 'agents'];
@@ -387,7 +387,9 @@ export function apply(ctx, rawConfig) {
       const text = m.content.filter(b => b.type === 'text').map(b => b.text).join('\n');
       return m.role === 'assistant' ? `(your earlier answer)\n${text}` : text;
     }).join('\n\n');
-    const input = [createUserMessage({ content: [{ type: 'text', text: flat }], source: { kind: SOURCE_KIND } })];
+    // Lone surrogates (half of an emoji) make strict JSON parsers reject the whole
+    // request; replace any with U+FFFD before it leaves the process.
+    const input = [createUserMessage({ content: [{ type: 'text', text: flat.toWellFormed() }], source: { kind: SOURCE_KIND } })];
     for await (const chunk of call.stream({ ...call.config, system, messages: input, sessionId: agent.session.id, signal })) assembler.push(chunk);
     if (assembler.finish?.kind !== 'stop') return '';
     return assembler.blocks().filter(b => b.type === 'text').map(b => b.text).join('');
@@ -434,7 +436,7 @@ export function apply(ctx, rawConfig) {
       kind: SOURCE_KIND,
       form: 'notice',
       role: 'recall',
-      summary: `Recalled memory ${items[i].path.slice(st.memoryDir.length + 1)}`.slice(0, 120),
+      summary: clipUnits(`Recalled memory ${items[i].path.slice(st.memoryDir.length + 1)}`, 120),
       recalled: [{ path: items[i].path, units: items[i].content.length }],
     }));
   };
